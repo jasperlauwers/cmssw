@@ -16,6 +16,8 @@ def efficiency_string(objtype,plot_type,triggerpath):
 	objtypeLatex="MET"
     elif objtype == "PFTau": 
 	objtypeLatex="#tau"
+    elif objtype == "PFJet": 
+	objtypeLatex="jet"
     else:
 	objtypeLatex=objtype
 
@@ -59,7 +61,7 @@ def add_reco_strings(strings):
 plot_types = ["TurnOn1", "TurnOn2", "EffEta", "EffPhi"]
 #--- IMPORTANT: Update this collection whenever you introduce a new object
 #               in the code (from EVTColContainer::getTypeString)
-obj_types  = ["Mu","Ele","Photon","MET","PFTau"]
+obj_types  = ["Mu","Ele","Photon","MET","PFTau","PFJet"]
 #--- IMPORTANT: Trigger are extracted from the hltHiggsValidator_cfi.py module
 triggers = [ ] 
 efficiency_strings = []
@@ -106,11 +108,16 @@ hltHiggsPostHtaunu = hltHiggsPostProcessor.clone()
 hltHiggsPostHtaunu.subDirs = ['HLT/Higgs/Htaunu']
 hltHiggsPostHtaunu.efficiencyProfile = efficiency_strings
 
+hltHiggsPostHbb = hltHiggsPostProcessor.clone()
+hltHiggsPostHbb.subDirs = ['HLT/Higgs/Hbb']
+hltHiggsPostHbb.efficiencyProfile = efficiency_strings
+
 
 hltHiggsPostProcessors = cms.Sequence(
 		hltHiggsPostHWW+
 		hltHiggsPostHZZ+
 		hltHiggsPostHgg+
 		hltHiggsPostHtaunu+
-		hltHiggsPostH2tau
+		hltHiggsPostH2tau+
+		hltHiggsPostHbb
 )

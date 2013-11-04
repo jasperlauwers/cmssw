@@ -1,13 +1,13 @@
 import FWCore.ParameterSet.Config as cms
 
-
 hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
 		
     hltProcessName = cms.string("HLT"),
-    analysis       = cms.vstring("HWW", "HZZ", "Hgg", "Htaunu", "H2tau"),
+    analysis       = cms.vstring("HWW", "HZZ", "Hgg", "Htaunu", "H2tau", "Hbb"),
     
     # -- The instance name of the reco::GenParticles collection
     genParticleLabel = cms.string("genParticles"),
+    genJetLabel = cms.string("ak5GenJets"),
 
     # -- The binning of the Pt efficiency plots
     parametersTurnOn = cms.vdouble(0,
@@ -66,6 +66,14 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
     MET_recCut      = cms.string("pt > 75."),  
     MET_cutMinPt    = cms.double(75), # TO BE DEPRECATED
     MET_cutMaxEta   = cms.double(0),  # TO BE DEPRECATED
+    
+    # --- Jets: 
+    PFJet_genCut      = cms.string("status == 1"),
+    PFJet_recCut      = cms.string("pt > 0."),  
+    PFJet_cutMinPt    = cms.double(0), # TO BE DEPRECATED
+    PFJet_cutMaxEta   = cms.double(0),  # TO BE DEPRECATED
+    
+    
 
     # The specific parameters per analysis: the name of the parameter set has to be 
     # the same as the defined ones in the 'analysis' datamember. Each analysis is a PSet
@@ -135,5 +143,14 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
 	    recElecLabel   = cms.string("gsfElectrons"),
 	    # -- Analysis specific cuts
 	    minCandidates = cms.uint32(2), 
+	    ),
+    Hbb  = cms.PSet( 
+	    hltPathsToCheck = cms.vstring(
+		    "HLT_QuadPFJet78_61_44_31_BTagCSV_VBF_v",
+		    "HLT_QuadPFJet82_65_48_35_BTagCSV_VBF_v"
+		    ),
+	    recPFJetLabel  = cms.string("ak5PFJets"),
+	    # -- Analysis specific cuts
+	    minCandidates = cms.uint32(1), 
 	    ),
 )

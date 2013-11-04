@@ -19,7 +19,7 @@
 #include "TString.h"
 
 #include "DataFormats/Common/interface/TriggerResults.h"
-#include "FWCore/Common/interface/TriggerNames.h"
+// #include "FWCore/Common/interface/TriggerNames.h" // included twice?
 
 #include "HLTriggerOffline/Higgs/interface/HLTHiggsSubAnalysis.h"
 #include "HLTriggerOffline/Higgs/src/MatchStruct.cc"
@@ -38,6 +38,7 @@ HLTHiggsSubAnalysis::HLTHiggsSubAnalysis(const edm::ParameterSet & pset,
 	_minCandidates(0),
 	_hltProcessName(pset.getParameter<std::string>("hltProcessName")),
 	_genParticleLabel(pset.getParameter<std::string>("genParticleLabel")),
+	_genJetLabel(pset.getParameter<std::string>("genJetLabel")),
       	_parametersEta(pset.getParameter<std::vector<double> >("parametersEta")),
   	_parametersPhi(pset.getParameter<std::vector<double> >("parametersPhi")),
   	_parametersTurnOn(pset.getParameter<std::vector<double> >("parametersTurnOn")),
@@ -46,6 +47,7 @@ HLTHiggsSubAnalysis::HLTHiggsSubAnalysis(const edm::ParameterSet & pset,
 	_recCaloMETSelector(0),
 	_recPFTauSelector(0),
 	_recPhotonSelector(0),
+	_recPFJetSelector(0),
 	_recTrackSelector(0),
 	_dbe(0)
 {
@@ -119,6 +121,11 @@ HLTHiggsSubAnalysis::~HLTHiggsSubAnalysis()
 			it->second =0;
 		}
 	}
+	if( _genPFJetSelector != 0)
+	{
+		delete _genPFJetSelector;
+		_genPFJetSelector =0;
+	}
 	if( _recMuonSelector != 0)
 	{
 		delete _recMuonSelector;
@@ -143,6 +150,11 @@ HLTHiggsSubAnalysis::~HLTHiggsSubAnalysis()
 	{
 		delete _recPFTauSelector;
 		_recPFTauSelector =0;
+	}
+	if( _recPFJetSelector != 0)
+	{
+		delete _recPFJetSelector;
+		_recPFJetSelector =0;
 	}
 	if( _recTrackSelector != 0)
 	{
@@ -295,29 +307,45 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 	for(std::map<unsigned int,std::string>::iterator it = _recLabels.begin();
 			it != _recLabels.end(); ++it)
 	{
-		// Avoiding the TkMu and Mu case
-/*		if( alreadyMu )
+		//Use genJets when object is a jet
+		if(it->first == EVTColContainer::PFJET)
 		{
-			continue;
-		}*/
-		// Initialize selectors when first event
-		if(!_genSelectorMap[it->first]) 
-		{
-			_genSelectorMap[it->first] = new StringCutObjectSelector<reco::GenParticle>(_genCut[it->first]);
-		}
-
-		for(size_t i = 0; i < cols->genParticles->size(); ++i)
-		{
-			if(_genSelectorMap[it->first]->operator()(cols->genParticles->at(i)))
+			for(size_t i = 0; i < cols->genJets->size(); ++i)
 			{
-				matches->push_back(MatchStruct(&cols->genParticles->at(i),it->first));
-			}
+				if(_genCut[EVTColContainer::PFJET]->operator()(cols->genJets->at(i)))
+				{
+					matches->push_back(MatchStruct(&cols->genJet->at(i),EVTColContainer::PFJET));
+				}
+			}			
 		}
-/*		if( it->first == EVTColContainer::MUON || it->first == EVTColContainer::TRACK )
+		//Otherwise use genParticles
+		else
 		{
-			alreadyMu = true;
-		}*/
+			// Avoiding the TkMu and Mu case
+	/*		if( alreadyMu )
+			{
+				continue;
+			}*/
+			// Initialize selectors when first event
+			if(!_genSelectorMap[it->first]) 
+			{
+				_genSelectorMap[it->first] = new StringCutObjectSelector<reco::GenParticle>(_genCut[it->first]);
+			}
+
+			for(size_t i = 0; i < cols->genParticles->size(); ++i)
+			{
+				if(_genSelectorMap[it->first]->operator()(cols->genParticles->at(i)))
+				{
+					matches->push_back(MatchStruct(&cols->genParticles->at(i),it->first));
+				}
+			}
+	/*		if( it->first == EVTColContainer::MUON || it->first == EVTColContainer::TRACK )
+			{
+				alreadyMu = true;
+			}*/
+		}
 	}
+
 	// Sort the MatchStructs by pT for later filling of turn-on curve
 	std::sort(matches->begin(), matches->end(), matchesByDescendingPt());
 	
@@ -422,12 +450,15 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 // Return the objects (muons,electrons,photons,...) needed by a hlt path. 
 const std::vector<unsigned int> HLTHiggsSubAnalysis::getObjectsType(const std::string & hltPath) const
 {
-	static const unsigned int objSize = 5; //6;
-	static const unsigned int objtriggernames[] = { EVTColContainer::MUON, 
+// 	static const unsigned int objSize = 5; //6;
+	static const unsigned int objSize = 6;
+	static const unsigned int objtriggernames[] = { 
+		EVTColContainer::MUON, 
 		EVTColContainer::ELEC, 
 		EVTColContainer::PHOTON,
 //		EVTColContainer::TRACK,  // Note is tracker muon
 	       	EVTColContainer::PFTAU,
+		EVTColContainer::PFJET,
 		EVTColContainer::CALOMET
 	};
 
@@ -476,6 +507,10 @@ void HLTHiggsSubAnalysis::bookobjects( const edm::ParameterSet & anpset )
 	{
 		_recLabels[EVTColContainer::PFTAU] = anpset.getParameter<std::string>("recPFTauLabel");
 		_genSelectorMap[EVTColContainer::PFTAU] = 0 ;
+	}
+	if( anpset.exists("recPFJetLabel") )
+	{
+		_recLabels[EVTColContainer::PFJET] = anpset.getParameter<std::string>("recPFJetLabel");
 	}
 	/*if( anpset.exists("recTrackLabel") )
 	{
@@ -530,6 +565,17 @@ void HLTHiggsSubAnalysis::initobjects(const edm::Event & iEvent, EVTColContainer
 		{
 			col->genParticles = genPart.product();
 		}
+		
+		// GenJet collection if it is needed
+		if( _recLabels.find("EVTColContainer::PFJET") != _recLabels.end() )
+		{
+			edm::Handle<reco::GenJetCollection> genJet;
+			iEvent.getByLabel(_genJetLabel,genJet);
+			if( genJet.isValid() )
+			{
+				col->genJets = genJet.product();
+			}
+		}
 	}
 		
 	for(std::map<unsigned int,std::string>::iterator it = _recLabels.begin(); 
@@ -562,6 +608,12 @@ void HLTHiggsSubAnalysis::initobjects(const edm::Event & iEvent, EVTColContainer
 		else if( it->first == EVTColContainer::PFTAU )
 		{
 			edm::Handle<reco::PFTauCollection> theHandle;
+			iEvent.getByLabel(it->second, theHandle);
+			col->set(theHandle.product());
+		}
+		else if( it->first == EVTColContainer::PFJET )
+		{
+			edm::Handle<reco::PFJetCollection> theHandle;
 			iEvent.getByLabel(it->second, theHandle);
 			col->set(theHandle.product());
 		}
@@ -652,6 +704,10 @@ void HLTHiggsSubAnalysis::InitSelector(const unsigned int & objtype)
 	{
 		_recPFTauSelector = new StringCutObjectSelector<reco::PFTau>(_recCut[objtype]);
 	}
+	else if( objtype == EVTColContainer::PFJET && _recPFJetSelector == 0 )
+	{
+		_recPFJetSelector = new StringCutObjectSelector<reco::PFJet>(_recCut[objtype]);
+	}
 	/*else if( objtype == EVTColContainer::TRACK && _recTrackSelector == 0)
 	{
 		_recTrackSelector = new StringCutObjectSelector<reco::Track>(_recCut[objtype]);
@@ -712,6 +768,16 @@ void HLTHiggsSubAnalysis::insertcandidates(const unsigned int & objType, const E
 			if(_recPFTauSelector->operator()(cols->pfTaus->at(i)))
 			{
 				matches->push_back(MatchStruct(&cols->pfTaus->at(i),objType));
+			}
+		}
+	}
+	else if( objType == EVTColContainer::PFJET )
+	{
+		for(size_t i = 0; i < cols->pfJets->size(); i++)
+		{
+			if(_recPFJetSelector->operator()(cols->pfJets->at(i)))
+			{
+				matches->push_back(MatchStruct(&cols->pfJets->at(i),objType));
 			}
 		}
 	}

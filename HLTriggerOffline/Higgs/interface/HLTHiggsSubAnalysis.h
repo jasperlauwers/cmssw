@@ -35,6 +35,8 @@
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/JetReco/interface/PFJet.h"
+#include "DataFormats/JetReco/interface/GenJet.h"
 #include "CommonTools/Utils/interface/StringCutObjectSelector.h"
 
 #include "DQMServices/Core/interface/DQMStore.h"
@@ -104,6 +106,8 @@ class HLTHiggsSubAnalysis
 		// The name of the object collections to be used in this
 		// analysis. 
 	      	std::string _genParticleLabel;
+		std::string _genJetLabel;
+		
 		std::map<unsigned int,std::string> _recLabels;
 		
 		//! Some kinematical parameters
@@ -122,11 +126,13 @@ class HLTHiggsSubAnalysis
 		//! The concrete String selectors (use the string cuts introduced
 		//! via the config python)
 		std::map<unsigned int,StringCutObjectSelector<reco::GenParticle> *> _genSelectorMap;
+		StringCutObjectSelector<reco::GenJet>	    * _genPFJetSelector
 	      	StringCutObjectSelector<reco::Muon>        * _recMuonSelector;
 	      	StringCutObjectSelector<reco::GsfElectron> * _recElecSelector;
 	      	StringCutObjectSelector<reco::CaloMET>     * _recCaloMETSelector;
 	      	StringCutObjectSelector<reco::PFTau>       * _recPFTauSelector;
 	      	StringCutObjectSelector<reco::Photon>      * _recPhotonSelector;
+		StringCutObjectSelector<reco::PFJet>      * _recPFJetSelector;
 	      	StringCutObjectSelector<reco::Track>       * _recTrackSelector;
 		
 		// The plotters: managers of each hlt path where the plots are done
