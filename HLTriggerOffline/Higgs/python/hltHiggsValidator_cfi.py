@@ -68,7 +68,7 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
     MET_cutMaxEta   = cms.double(0),  # TO BE DEPRECATED
     
     # --- Jets: 
-    PFJet_genCut      = cms.string("status == 1"),
+    PFJet_genCut      = cms.string("pt > 0."),
     PFJet_recCut      = cms.string("pt > 0."),  
     PFJet_cutMinPt    = cms.double(0), # TO BE DEPRECATED
     PFJet_cutMaxEta   = cms.double(0),  # TO BE DEPRECATED
@@ -151,6 +151,7 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
 		    ),
 	    recPFJetLabel  = cms.string("ak5PFJets"),
 	    # -- Analysis specific cuts
-	    minCandidates = cms.uint32(1), 
+	    minCandidates = cms.uint32(4), 
+	    #doVBFHBBana   = cms.untracked.bool(True)
 	    ),
 )

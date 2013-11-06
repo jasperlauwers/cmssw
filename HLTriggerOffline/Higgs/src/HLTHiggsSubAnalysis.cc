@@ -13,23 +13,17 @@
 #include "HLTriggerOffline/Higgs/src/EVTColContainer.cc"
 #include "HLTriggerOffline/Higgs/src/MatchStruct.cc"
 
-#include "FWCore/Common/interface/TriggerNames.h"
-
 #include "TPRegexp.h"
 #include "TString.h"
 
 #include "DataFormats/Common/interface/TriggerResults.h"
-// #include "FWCore/Common/interface/TriggerNames.h" // included twice?
-
-#include "HLTriggerOffline/Higgs/interface/HLTHiggsSubAnalysis.h"
-#include "HLTriggerOffline/Higgs/src/MatchStruct.cc"
+#include "FWCore/Common/interface/TriggerNames.h"
 
 #include "TPRegexp.h"
 #include "TString.h"
 
 #include<set>
 #include<algorithm>
-
 
 HLTHiggsSubAnalysis::HLTHiggsSubAnalysis(const edm::ParameterSet & pset,
 		const std::string & analysisname) :
@@ -123,7 +117,7 @@ HLTHiggsSubAnalysis::~HLTHiggsSubAnalysis()
 	}
 	if( _genPFJetSelector != 0)
 	{
-		delete _genPFJetSelector;
+//  		delete _genPFJetSelector;
 		_genPFJetSelector =0;
 	}
 	if( _recMuonSelector != 0)
@@ -307,18 +301,24 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 	for(std::map<unsigned int,std::string>::iterator it = _recLabels.begin();
 			it != _recLabels.end(); ++it)
 	{
-		//Use genJets when object is a jet
+		// Use genJets when object is a jet
 		if(it->first == EVTColContainer::PFJET)
 		{
+			// Initialize selector when first event
+			if(!_genPFJetSelector) 
+			{
+				_genPFJetSelector = new StringCutObjectSelector<reco::GenJet>(_genCut[EVTColContainer::PFJET]); 
+			} 
+			
 			for(size_t i = 0; i < cols->genJets->size(); ++i)
 			{
-				if(_genCut[EVTColContainer::PFJET]->operator()(cols->genJets->at(i)))
+				if(_genPFJetSelector->operator()(cols->genJets->at(i)))
 				{
-					matches->push_back(MatchStruct(&cols->genJet->at(i),EVTColContainer::PFJET));
+					matches->push_back(MatchStruct(&cols->genJets->at(i),EVTColContainer::PFJET));
 				}
 			}			
 		}
-		//Otherwise use genParticles
+		// Otherwise use genParticles
 		else
 		{
 			// Avoiding the TkMu and Mu case
@@ -343,7 +343,7 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 			{
 				alreadyMu = true;
 			}*/
-		}
+ 		}
 	}
 
 	// Sort the MatchStructs by pT for later filling of turn-on curve
@@ -511,6 +511,7 @@ void HLTHiggsSubAnalysis::bookobjects( const edm::ParameterSet & anpset )
 	if( anpset.exists("recPFJetLabel") )
 	{
 		_recLabels[EVTColContainer::PFJET] = anpset.getParameter<std::string>("recPFJetLabel");
+		_genPFJetSelector = 0 ;
 	}
 	/*if( anpset.exists("recTrackLabel") )
 	{
@@ -567,7 +568,7 @@ void HLTHiggsSubAnalysis::initobjects(const edm::Event & iEvent, EVTColContainer
 		}
 		
 		// GenJet collection if it is needed
-		if( _recLabels.find("EVTColContainer::PFJET") != _recLabels.end() )
+		if( _recLabels.find(EVTColContainer::PFJET) != _recLabels.end() )
 		{
 			edm::Handle<reco::GenJetCollection> genJet;
 			iEvent.getByLabel(_genJetLabel,genJet);

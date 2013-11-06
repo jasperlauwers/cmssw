@@ -9,7 +9,7 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/Candidate/interface/CandMatchMap.h"
-#include "DataFormats/MuonReco/interface/Muon.h"  // already in EVTColContainer.cc and in HLTHiggsPlotter.h
+#include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
 
 #include "DataFormats/HLTReco/interface/TriggerEvent.h"

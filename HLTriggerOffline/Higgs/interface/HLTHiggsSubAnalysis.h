@@ -126,7 +126,7 @@ class HLTHiggsSubAnalysis
 		//! The concrete String selectors (use the string cuts introduced
 		//! via the config python)
 		std::map<unsigned int,StringCutObjectSelector<reco::GenParticle> *> _genSelectorMap;
-		StringCutObjectSelector<reco::GenJet>	    * _genPFJetSelector
+		StringCutObjectSelector<reco::GenJet>	    * _genPFJetSelector;
 	      	StringCutObjectSelector<reco::Muon>        * _recMuonSelector;
 	      	StringCutObjectSelector<reco::GsfElectron> * _recElecSelector;
 	      	StringCutObjectSelector<reco::CaloMET>     * _recCaloMETSelector;
