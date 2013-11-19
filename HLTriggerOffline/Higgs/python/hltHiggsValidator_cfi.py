@@ -68,10 +68,10 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
     MET_cutMaxEta   = cms.double(0),  # TO BE DEPRECATED
     
     # --- Jets: 
-    PFJet_genCut      = cms.string("pt > 0."),
-    PFJet_recCut      = cms.string("pt > 0."),  
-    PFJet_cutMinPt    = cms.double(0), # TO BE DEPRECATED
-    PFJet_cutMaxEta   = cms.double(0),  # TO BE DEPRECATED
+    CaloJet_genCut      = cms.string("pt > 0."),
+    CaloJet_recCut      = cms.string("pt > 0."),  
+    CaloJet_cutMinPt    = cms.double(0), # TO BE DEPRECATED
+    CaloJet_cutMaxEta   = cms.double(0),  # TO BE DEPRECATED
     
     
 
@@ -81,7 +81,7 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
     #    - hltPathsToCheck (cms.vstring) : a list of all the trigger pats to be checked 
     #                 in this analysis. Up to the version number _v, but not including 
     #                 the number in order to avoid this version dependence. Example: HLT_Mu18_v
-    #    - recVarLabel (cms.string): where Var can be Muon, Elec, Photon, CaloMET, PFTau. This 
+    #    - recVarLabel (cms.string): where Var can be Muon, Elec, Photon, CaloMET, PFTau, CaloJet. This 
     #                 attribute is the name of the INSTANCE LABEL for each RECO collection to 
     #                 be considered in the analysis. Note that the trigger paths rely on some 
     #                 objects which need to be defined here, otherwise the code will complain. 
@@ -146,12 +146,12 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
 	    ),
     Hbb  = cms.PSet( 
 	    hltPathsToCheck = cms.vstring(
-		    "HLT_QuadPFJet78_61_44_31_BTagCSV_VBF_v",
-		    "HLT_QuadPFJet82_65_48_35_BTagCSV_VBF_v"
+		    "HLT_QuadJet75_55_35_20_BTagIP_VBF_v",
+		    "HLT_QuadJet75_55_38_20_BTagIP_VBF_v"
 		    ),
-	    recPFJetLabel  = cms.string("ak5PFJets"),
+	    recCaloJetLabel  = cms.string("ak5CaloJets"),
 	    # -- Analysis specific cuts
 	    minCandidates = cms.uint32(4), 
-	    #doVBFHBBana   = cms.untracked.bool(True)
+	    isVBFHBB   = cms.untracked.bool(True)
 	    ),
 )

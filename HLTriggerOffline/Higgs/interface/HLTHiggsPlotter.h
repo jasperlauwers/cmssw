@@ -29,7 +29,7 @@
 #include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/EgammaCandidates/interface/Photon.h"
-#include "DataFormats/JetReco/interface/PFJet.h"
+#include "DataFormats/JetReco/interface/CaloJet.h"
 #include "DataFormats/JetReco/interface/GenJet.h"
 
 #include "DQMServices/Core/interface/DQMStore.h"
@@ -52,6 +52,7 @@ class HLTHiggsPlotter
 	      	HLTHiggsPlotter(const edm::ParameterSet & pset, const std::string & hltPath,
 				//const std::string & lastFilter,
 				const std::vector<unsigned int> & objectsType,
+				const unsigned int & minCandidates,
 			       	DQMStore * dbe);
 		~HLTHiggsPlotter();
 	      	void beginJob();
@@ -70,7 +71,7 @@ class HLTHiggsPlotter
 	      	std::string _hltPath;
 		//std::string _lastFilter;
 		std::string _hltProcessName;
-
+		
 		std::set<unsigned int> _objectsType;
 		// Number of objects (elec,muons, ...) needed in the hlt path
 		unsigned int _nObjects; 
@@ -84,6 +85,8 @@ class HLTHiggsPlotter
 		std::map<unsigned int,unsigned int> _cutMotherId;
 		std::map<unsigned int,std::vector<double> > _cutsDr;
 		
+		// The amount of Pt plots needed for the hlt path
+		unsigned int _minCandidates;
 		
 	      	DQMStore* _dbe;
 	      	std::map<std::string, MonitorElement *> _elements;		

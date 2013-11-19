@@ -36,21 +36,16 @@ process.maxEvents = cms.untracked.PSet(
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 	    #'file:/afs/cern.ch/user/d/duarte/scratch0/step2_RAW2DIGI_RECO.root',
-	     #'/store/relval/CMSSW_6_2_0/RelValQCD_Pt_600_800/GEN-SIM-RECO/PRE_ST62_V8-v3/00000/B0E46DF7-5CEC-E211-BAAD-0025901D5C7E.root',
+	     '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_600_800/GEN-SIM-RECO/PRE_ST62_V8-v3/00000/B0E46DF7-5CEC-E211-BAAD-0025901D5C7E.root',
 	    #'/store/relval/CMSSW_5_2_0/RelValZMM/GEN-SIM-RECO/START52_V4A-v1/0248/BE2AD2B0-1569-E111-B555-003048678FF4.root',
 	    #'/store/relval/CMSSW_6_2_0/RelValMinBias/GEN-SIM-RECO/PRE_ST62_V8-v3/00000/E25D61DF-53EC-E211-833B-002481E736D2.root',
-	    '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_80_120/GEN-SIM-RECO/PRE_ST62_V8-v3/00000/F640D45E-47EC-E211-8B37-00237DDC5C16.root',
     ),
     secondaryFileNames = cms.untracked.vstring(
 	    #'file:/afs/cern.ch/user/d/duarte/scratch0/H130GGgluonfusion_cfi_py_GEN_SIM_DIGI_L1_DIGI2RAW_HLT.root',
-       	    #'/store/relval/CMSSW_6_2_0/RelValQCD_Pt_600_800/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/D4F70B7B-3BEC-E211-98E0-02163E008BD3.root',
-       	    #'/store/relval/CMSSW_6_2_0/RelValQCD_Pt_600_800/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/C821FE0D-4DEC-E211-95D9-003048FEAF8C.root',
+       	    '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_600_800/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/D4F70B7B-3BEC-E211-98E0-02163E008BD3.root',
+       	    '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_600_800/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/C821FE0D-4DEC-E211-95D9-003048FEAF8C.root',
        	    #'/store/relval/CMSSW_6_2_0/RelValMinBias/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/F0BD3DB3-3AEC-E211-A563-5404A63886A5.root',
-       	    #'/store/relval/CMSSW_6_2_0/RelValMinBias/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/EE31C8C3-46EC-E211-BD25-02163E008FF0.root',
-       	    '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_80_120/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/527D3814-36EC-E211-B78D-001E672CC4C1.root',
-       	    '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_80_120/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/10B03F84-37EC-E211-9C78-003048D2BCE8.root',
-       	    '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_80_120/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/9E9622DC-37EC-E211-8A65-003048D37366.root',
-       	    
+       	    #'/store/relval/CMSSW_6_2_0/RelValMinBias/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/EE31C8C3-46EC-E211-BD25-02163E008FF0.root',       	    
     )
 )
 
@@ -76,6 +71,7 @@ process.out = cms.OutputModule("PoolOutputModule",
 
 
 process.analyzerpath = cms.Path(
+    #process.prebTagSequence *
     process.hltHiggsValidator *
     process.MEtoEDMConverter
 )

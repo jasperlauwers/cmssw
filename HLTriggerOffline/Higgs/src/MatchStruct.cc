@@ -16,6 +16,7 @@
 #include "DataFormats/TrackReco/interface/Track.h"
 
 #include "TLorentzVector.h"
+#include "DataFormats/Math/interface/Vector3D.h"
 
 #include<vector>
 
@@ -27,12 +28,18 @@ struct MatchStruct
 	float pt;
 	float eta;
 	float phi;
+	float bTag;
+	float energy;
+	math::XYZVector momentum;
 	const void * thepointer;
 	MatchStruct():
 		objType(0),
 		pt(0),
 		eta(0),
 		phi(0),
+		bTag(0),
+		energy(0),
+// 		momentum(0),
 		thepointer(0)
 	{
 	}
@@ -41,6 +48,18 @@ struct MatchStruct
 		pt(cand->pt()),
 		eta(cand->eta()),
 		phi(cand->phi()),
+		thepointer(cand)
+
+	{
+	}
+	MatchStruct(const reco::Candidate * cand, const unsigned int & obj, const float & bTagVal) :
+		objType(obj),
+		pt(cand->pt()),
+		eta(cand->eta()),
+		phi(cand->phi()),
+		bTag(bTagVal),
+		energy(cand->energy()),
+		momentum(cand->momentum()),
 		thepointer(cand)
 
 	{
@@ -70,6 +89,20 @@ struct matchesByDescendingPt
 	bool operator() (MatchStruct a, MatchStruct b) 
 	{     
 		return a.pt > b.pt;
+	}
+};
+struct matchesByDescendingEta 
+{
+	bool operator() (MatchStruct a, MatchStruct b) 
+	{     
+		return a.eta > b.eta;
+	}
+};
+struct matchesByDescendingBtag
+{
+	bool operator() (MatchStruct a, MatchStruct b) 
+	{     
+		return a.bTag > b.bTag;
 	}
 };
 #endif

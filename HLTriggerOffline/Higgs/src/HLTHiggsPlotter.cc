@@ -26,7 +26,8 @@
 
 HLTHiggsPlotter::HLTHiggsPlotter(const edm::ParameterSet & pset,
                                  const std::string & hltPath,
-                                 const std::vector<unsigned int> & objectsType,
+                                 const std::vector<unsigned int> & objectsType, 
+				  const unsigned int & minCandidates,
                                  DQMStore * dbe) :
     _hltPath(hltPath),
     _hltProcessName(pset.getParameter<std::string>("hltProcessName")),
@@ -35,6 +36,7 @@ HLTHiggsPlotter::HLTHiggsPlotter(const edm::ParameterSet & pset,
     _parametersEta(pset.getParameter<std::vector<double> >("parametersEta")),
     _parametersPhi(pset.getParameter<std::vector<double> >("parametersPhi")),
     _parametersTurnOn(pset.getParameter<std::vector<double> >("parametersTurnOn")),
+    _minCandidates(minCandidates),
     _dbe(dbe)
 {
   for(std::set<unsigned int>::iterator it = _objectsType.begin();
@@ -67,6 +69,7 @@ void HLTHiggsPlotter::beginRun(const edm::Run & iRun,
     std::vector<std::string> sources(2);
     sources[0] = "gen";
     sources[1] = "rec";
+    TString maxPt;
 
     const std::string objTypeStr = EVTColContainer::getTypeString(*it);
 	  
@@ -75,8 +78,12 @@ void HLTHiggsPlotter::beginRun(const edm::Run & iRun,
       std::string source = sources[i];
       bookHist(source, objTypeStr, "Eta");
       bookHist(source, objTypeStr, "Phi");
-      bookHist(source, objTypeStr, "MaxPt1");
-      bookHist(source, objTypeStr, "MaxPt2");
+      for( unsigned int i=0; i < _minCandidates; i++ )
+      {
+	maxPt = "MaxPt";
+	maxPt += i+1;
+	bookHist(source, objTypeStr, maxPt.Data());
+      }
     }
   }
 }
@@ -98,7 +105,7 @@ void HLTHiggsPlotter::analyze(const bool & isPassTrigger,
   }
 	
   int counttotal = 0;
-  const int totalobjectssize2 = 2*countobjects.size();
+  const int totalobjectssize2 = _minCandidates*countobjects.size();
   // Fill the histos if pass the trigger (just the two with higher pt)
   for (size_t j = 0; j < matches.size(); ++j)
   {
@@ -116,26 +123,24 @@ void HLTHiggsPlotter::analyze(const bool & isPassTrigger,
     float phi = matches[j].phi;
     this->fillHist(isPassTrigger,source,objTypeStr,"Eta",eta);
     this->fillHist(isPassTrigger,source,objTypeStr,"Phi",phi);
-    if ( countobjects[objType] == 0 )
+    
+    TString maxPt;
+    for( unsigned int i=0; i < _minCandidates; i++ )
     {
-      this->fillHist(isPassTrigger,source,objTypeStr,"MaxPt1",pt);
-      // Filled the high pt ...
-      ++(countobjects[objType]);
-      ++counttotal;
-    }
-    else if ( countobjects[objType] == 1 )
-    {
-      this->fillHist(isPassTrigger,source,objTypeStr,"MaxPt2",pt);
-      // Filled the second high pt ...
-      ++(countobjects[objType]);
-      ++counttotal;
-    }
-    else
-    {
-      if ( counttotal == totalobjectssize2 ) 
+      if( (unsigned)countobjects[objType] == i )
       {
-        break;
+	maxPt = "MaxPt";
+	maxPt += i+1;
+	this->fillHist(isPassTrigger,source,objTypeStr,maxPt.Data(),pt);
+	// Filled the high pt ...
+	++(countobjects[objType]);
+	++counttotal;
+	break;
       }
+    }
+   if ( counttotal == totalobjectssize2 ) 
+    {
+      break;
     }				
   }
 }
@@ -152,7 +157,10 @@ void HLTHiggsPlotter::bookHist(const std::string & source,
 
   if (variable.find("MaxPt") != std::string::npos) 
   {
-    std::string desc = (variable == "MaxPt1") ? "Leading" : "Next-to-Leading";
+    std::string desc;
+    if (variable == "MaxPt1") desc = "Leading";
+    else if (variable == "MaxPt2") desc = "Next-to-Leading";
+    else desc = variable.substr(5,6) + "th Leading";
     std::string title = "pT of " + desc + " " + sourceUpper + " " + objType + " "
         "where event pass the "+ _hltPath;
     const size_t nBins = _parametersTurnOn.size() - 1;

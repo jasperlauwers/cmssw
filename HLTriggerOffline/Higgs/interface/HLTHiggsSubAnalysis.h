@@ -35,7 +35,7 @@
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
-#include "DataFormats/JetReco/interface/PFJet.h"
+#include "DataFormats/JetReco/interface/CaloJet.h"
 #include "DataFormats/JetReco/interface/GenJet.h"
 #include "CommonTools/Utils/interface/StringCutObjectSelector.h"
 
@@ -78,6 +78,9 @@ class HLTHiggsSubAnalysis
 		void bookobjects(const edm::ParameterSet & anpset);
 		void initobjects(const edm::Event & iEvent, EVTColContainer * col);
 		void InitSelector(const unsigned int & objtype);
+		void initAndInsertJets(const edm::Event & iEvent, EVTColContainer * cols, 
+				std::vector<MatchStruct> * matches);
+		bool passJetCuts( std::vector<MatchStruct> * matches); 
 		void insertcandidates(const unsigned int & objtype, const EVTColContainer * col,
 				std::vector<MatchStruct> * matches);
 
@@ -126,14 +129,17 @@ class HLTHiggsSubAnalysis
 		//! The concrete String selectors (use the string cuts introduced
 		//! via the config python)
 		std::map<unsigned int,StringCutObjectSelector<reco::GenParticle> *> _genSelectorMap;
-		StringCutObjectSelector<reco::GenJet>	    * _genPFJetSelector;
+		StringCutObjectSelector<reco::GenJet>	    * _genJetSelector;
 	      	StringCutObjectSelector<reco::Muon>        * _recMuonSelector;
 	      	StringCutObjectSelector<reco::GsfElectron> * _recElecSelector;
 	      	StringCutObjectSelector<reco::CaloMET>     * _recCaloMETSelector;
 	      	StringCutObjectSelector<reco::PFTau>       * _recPFTauSelector;
 	      	StringCutObjectSelector<reco::Photon>      * _recPhotonSelector;
-		StringCutObjectSelector<reco::PFJet>      * _recPFJetSelector;
+		StringCutObjectSelector<reco::CaloJet>      * _recCaloJetSelector;
 	      	StringCutObjectSelector<reco::Track>       * _recTrackSelector;
+		
+		//bool to determine if VBFHbb plots have to be made
+		bool _isVBFHBB;
 		
 		// The plotters: managers of each hlt path where the plots are done
 		std::vector<HLTHiggsPlotter> _analyzers;
