@@ -29,8 +29,7 @@ struct MatchStruct
 	float eta;
 	float phi;
 	float bTag;
-	float energy;
-	math::XYZVector momentum;
+	math::XYZTLorentzVector lorentzVector;
 	const void * thepointer;
 	MatchStruct():
 		objType(0),
@@ -38,8 +37,7 @@ struct MatchStruct
 		eta(0),
 		phi(0),
 		bTag(0),
-		energy(0),
-// 		momentum(0),
+ 		lorentzVector(0,0,0,0),
 		thepointer(0)
 	{
 	}
@@ -58,8 +56,7 @@ struct MatchStruct
 		eta(cand->eta()),
 		phi(cand->phi()),
 		bTag(bTagVal),
-		energy(cand->energy()),
-		momentum(cand->momentum()),
+		lorentzVector(cand->p4()),
 		thepointer(cand)
 
 	{

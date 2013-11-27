@@ -28,6 +28,7 @@ HLTHiggsPlotter::HLTHiggsPlotter(const edm::ParameterSet & pset,
                                  const std::string & hltPath,
                                  const std::vector<unsigned int> & objectsType, 
 				  const unsigned int & minCandidates,
+				  const bool & isVBFHBB,
                                  DQMStore * dbe) :
     _hltPath(hltPath),
     _hltProcessName(pset.getParameter<std::string>("hltProcessName")),
@@ -37,6 +38,7 @@ HLTHiggsPlotter::HLTHiggsPlotter(const edm::ParameterSet & pset,
     _parametersPhi(pset.getParameter<std::vector<double> >("parametersPhi")),
     _parametersTurnOn(pset.getParameter<std::vector<double> >("parametersTurnOn")),
     _minCandidates(minCandidates),
+    _isVBFHBB(isVBFHBB),
     _dbe(dbe)
 {
   for(std::set<unsigned int>::iterator it = _objectsType.begin();
@@ -83,6 +85,11 @@ void HLTHiggsPlotter::beginRun(const edm::Run & iRun,
 	maxPt = "MaxPt";
 	maxPt += i+1;
 	bookHist(source, objTypeStr, maxPt.Data());
+      }
+      if( _isVBFHBB ) {
+	bookHist(source, objTypeStr, "dEtaqq");
+	bookHist(source, objTypeStr, "mqq");
+	bookHist(source, objTypeStr, "dPhibb");
       }
     }
   }
@@ -145,6 +152,93 @@ void HLTHiggsPlotter::analyze(const bool & isPassTrigger,
   }
 }
 
+void HLTHiggsPlotter::analyze(const bool & isPassTrigger, const std::string & source, const std::vector<MatchStruct> & matches,
+			       const std::map<std::string,bool> & nMinOne, const float & dEtaqq, const float & mqq, const float & dPhibb)
+{
+  if ( !isPassTrigger )
+  {
+    return;
+  }
+  std::map<unsigned int,int> countobjects;
+  // Initializing the count of the used object
+  for(std::set<unsigned int>::iterator co = _objectsType.begin();
+      co != _objectsType.end(); ++co)
+  {
+    countobjects[*co] = 0;
+  }
+	
+  int counttotal = 0;
+  const int totalobjectssize2 = _minCandidates*countobjects.size();
+  // Fill the histos if pass the trigger (just the two with higher pt)
+  for (size_t j = 0; j < matches.size(); ++j)
+  {
+    // Is this object owned by this trigger? If not we are not interested...
+    if ( _objectsType.find( matches[j].objType) == _objectsType.end() )
+    {
+      continue;
+    }
+
+    const unsigned int objType = matches[j].objType;
+    const std::string objTypeStr = EVTColContainer::getTypeString(matches[j].objType);
+		
+    float pt  = matches[j].pt;
+    float eta = matches[j].eta;
+    float phi = matches[j].phi;
+    
+    if( objType == EVTColContainer::CALOJET )
+    {
+	if( nMinOne.at("MaxPt1") && nMinOne.at("MaxPt2") ) {
+	    this->fillHist(isPassTrigger,source,objTypeStr,"Eta",eta);
+	    this->fillHist(isPassTrigger,source,objTypeStr,"Phi",phi);
+	}
+    }
+    else 
+    {
+	this->fillHist(isPassTrigger,source,objTypeStr,"Eta",eta);
+	this->fillHist(isPassTrigger,source,objTypeStr,"Phi",phi);
+    }
+    
+    TString maxPt;
+    for( unsigned int i=0; i < _minCandidates; i++ )
+    {
+      if( (unsigned)countobjects[objType] == i )
+      {
+	maxPt = "MaxPt";
+	maxPt += i+1;
+	if( objType == EVTColContainer::CALOJET) {
+	    if( nMinOne.at(maxPt.Data()) ) {
+		this->fillHist(isPassTrigger,source,objTypeStr,maxPt.Data(),pt);
+		// Filled the high pt ...
+		++(countobjects[objType]);
+		++counttotal;
+	    }
+	}
+	else {
+	    this->fillHist(isPassTrigger,source,objTypeStr,maxPt.Data(),pt);
+	    // Filled the high pt ...
+	    ++(countobjects[objType]);
+	    ++counttotal;
+	}
+	
+	break;
+      }
+    }
+   if ( counttotal == totalobjectssize2 ) 
+    {
+      break;
+    }				
+  }
+  
+  if( nMinOne.at("dEtaqq") ) {
+    this->fillHist(isPassTrigger,source,EVTColContainer::getTypeString(EVTColContainer::CALOJET),"dEtaqq",dEtaqq);
+  }
+  if( nMinOne.at("mqq") ) {
+    this->fillHist(isPassTrigger,source,EVTColContainer::getTypeString(EVTColContainer::CALOJET),"mqq",mqq);
+  }
+  if( nMinOne.at("dPhibb") ) {
+    this->fillHist(isPassTrigger,source,EVTColContainer::getTypeString(EVTColContainer::CALOJET),"dPhibb",dPhibb);
+  }  
+}
 
 void HLTHiggsPlotter::bookHist(const std::string & source, 
                                const std::string & objType,
@@ -173,17 +267,41 @@ void HLTHiggsPlotter::bookHist(const std::string & source,
     delete [] edges;
   }
   else 
-  {
-    std::string symbol = (variable == "Eta") ? "#eta" : "#phi";
-    std::string title  = symbol + " of " + sourceUpper + " " + objType + " "+
-        "where event pass the "+ _hltPath;
-    std::vector<double> params = (variable == "Eta") ? _parametersEta : _parametersPhi;
+    {
+    if( variable == "dEtaqq" ){
+	std::string title  = "#Delta #eta_{qq} of " + sourceUpper + " " + objType;
+	int    nBins = 20;
+	double min   = 0;
+	double max   = 4.8;
+	h = new TH1F(name.c_str(), title.c_str(), nBins, min, max);
+	}
+	else if ( variable == "mqq" ){
+		std::string title  = "m_{qq} of " + sourceUpper + " " + objType;
+		int    nBins = 20;
+	    	double min   = 0;
+	    	double max   = 800;
+	    	h = new TH1F(name.c_str(), title.c_str(), nBins, min, max);
+	} 
+	else if ( variable == "dPhibb" ){
+		std::string title  = "#Delta #phi_{bb} of " + sourceUpper + " " + objType;
+		int    nBins = 20;
+	    	double min   = 0;
+	    	double max   = 6.284;
+	    	h = new TH1F(name.c_str(), title.c_str(), nBins, min, max);
+	}
+	else
+	{
+	    std::string symbol = (variable == "Eta") ? "#eta" : "#phi";
+	    std::string title  = symbol + " of " + sourceUpper + " " + objType + " "+
+		"where event pass the "+ _hltPath;
+	    std::vector<double> params = (variable == "Eta") ? _parametersEta : _parametersPhi;
 
-    int    nBins = (int)params[0];
-    double min   = params[1];
-    double max   = params[2];
-    h = new TH1F(name.c_str(), title.c_str(), nBins, min, max);
-  }
+	    int    nBins = (int)params[0];
+	    double min   = params[1];
+	    double max   = params[2];
+	    h = new TH1F(name.c_str(), title.c_str(), nBins, min, max);
+	}
+    }
   h->Sumw2();
   _elements[name] = _dbe->book1D(name, h);
   delete h;

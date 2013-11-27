@@ -16,7 +16,7 @@ def efficiency_string(objtype,plot_type,triggerpath):
 	objtypeLatex="MET"
     elif objtype == "PFTau": 
 	objtypeLatex="#tau"
-    elif objtype == "CaloJet": 
+    elif objtype == "Jet": 
 	objtypeLatex="jet"
     else:
 	objtypeLatex=objtype
@@ -28,18 +28,34 @@ def efficiency_string(objtype,plot_type,triggerpath):
         title = "pT Turn-On"
         xAxis = "p_{T} of Leading Generated %s (GeV/c)" % (objtype)
         input_type = "gen%sMaxPt1" % (objtype)
-    if plot_type == "TurnOn2":
+    elif plot_type == "TurnOn2":
         title = "Next-to-Leading pT Turn-On"
         xAxis = "p_{T} of Next-to-Leading Generated %s (GeV/c)" % (objtype)
         input_type = "gen%sMaxPt2" % (objtype)
-    if plot_type == "EffEta":
+    elif plot_type == "EffEta":
         title = "#eta Efficiency"
         xAxis = "#eta of Generated %s " % (objtype)
         input_type = "gen%sEta" % (objtype)
-    if plot_type == "EffPhi":
+    elif plot_type == "EffPhi":
         title = "#phi Efficiency"
         xAxis = "#phi of Generated %s " % (objtype)
-        input_type = "gen%sPhi" % (objtype)
+        input_type = "gen%sPhi" % (objtype)     
+    elif "TurnOn" in plot_type:
+        title = "%sth Leading pT Turn-On" % (plot_type[-1])
+        xAxis = "p_{T} of %sth Leading Generated %s (GeV/c)" % (plot_type[-1], objtype)
+        input_type = "gen%sMaxPt%s" % (objtype, plot_type[-1])
+    elif plot_type == "EffdEtaqq":
+        title = "#Delta #eta_{qq} Efficiency"
+        xAxis = "#Delta #eta_{qq} of Generated %s " % (objtype)
+        input_type = "gen%sdEtaqq" % (objtype)
+    elif plot_type == "Effmqq":
+        title = "m_{qq} Efficiency"
+        xAxis = "m_{qq} of Generated %s " % (objtype)
+        input_type = "gen%smqq" % (objtype)
+    elif plot_type == "EffdPhibb":
+	title = "#Delta #phi_{bb} Efficiency"
+        xAxis = "#Delta #phi_{bb} of Generated %s " % (objtype)
+        input_type = "gen%sdPhibb" % (objtype)
 
     yAxis = "%s / %s" % (numer_description, denom_description)
     all_titles = "%s for trigger %s; %s; %s" % (title, triggerpath,
@@ -59,9 +75,10 @@ def add_reco_strings(strings):
 
 
 plot_types = ["TurnOn1", "TurnOn2", "EffEta", "EffPhi"]
+
 #--- IMPORTANT: Update this collection whenever you introduce a new object
 #               in the code (from EVTColContainer::getTypeString)
-obj_types  = ["Mu","Ele","Photon","MET","PFTau","CaloJet"]
+obj_types  = ["Mu","Ele","Photon","MET","PFTau","Jet"]
 #--- IMPORTANT: Trigger are extracted from the hltHiggsValidator_cfi.py module
 triggers = [ ] 
 efficiency_strings = []
@@ -74,6 +91,7 @@ for an in _config.analysis:
 	vstr = s.__getattribute__("hltPathsToCheck")
 	map(lambda x: triggers.add(x.replace("_v","")),vstr)
 triggers = list(triggers)
+
 #------------------------------------------------------------
 
 # Generating the list with all the efficiencies
@@ -108,6 +126,19 @@ hltHiggsPostHtaunu = hltHiggsPostProcessor.clone()
 hltHiggsPostHtaunu.subDirs = ['HLT/Higgs/Htaunu']
 hltHiggsPostHtaunu.efficiencyProfile = efficiency_strings
 
+#Need other plots for VBFHbb
+isVBFHBB = (_config.__getattribute__("Hbb")).__getattribute__("isVBFHBB")
+if isVBFHBB: 
+    plot_types = ["TurnOn1", "TurnOn2", "TurnOn3", "TurnOn4", "EffdEtaqq", "Effmqq", "EffdPhibb"]
+
+efficiency_strings = []    
+for type in plot_types:
+    for obj in obj_types:
+	for trig in triggers:
+	    efficiency_strings.append(efficiency_string(obj,type,trig))
+	    
+add_reco_strings(efficiency_strings)
+    
 hltHiggsPostHbb = hltHiggsPostProcessor.clone()
 hltHiggsPostHbb.subDirs = ['HLT/Higgs/Hbb']
 hltHiggsPostHbb.efficiencyProfile = efficiency_strings

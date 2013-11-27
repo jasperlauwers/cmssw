@@ -19,12 +19,9 @@
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "FWCore/Common/interface/TriggerNames.h"
 
-#include "TPRegexp.h"
-#include "TString.h"
-
 #include<set>
 #include<algorithm>
-#include <iostream>
+// #include <iostream>
 
 HLTHiggsSubAnalysis::HLTHiggsSubAnalysis(const edm::ParameterSet & pset,
 		const std::string & analysisname) :
@@ -37,6 +34,7 @@ HLTHiggsSubAnalysis::HLTHiggsSubAnalysis(const edm::ParameterSet & pset,
       	_parametersEta(pset.getParameter<std::vector<double> >("parametersEta")),
   	_parametersPhi(pset.getParameter<std::vector<double> >("parametersPhi")),
   	_parametersTurnOn(pset.getParameter<std::vector<double> >("parametersTurnOn")),
+  	_genJetSelector(0),
 	_recMuonSelector(0),
 	_recElecSelector(0),
 	_recCaloMETSelector(0),
@@ -45,6 +43,7 @@ HLTHiggsSubAnalysis::HLTHiggsSubAnalysis(const edm::ParameterSet & pset,
 	_recCaloJetSelector(0),
 	_recTrackSelector(0),
 	_isVBFHBB(0),
+	_multipleJetCuts(0),
 	_dbe(0)
 {
 	// Specific parameters for this analysis
@@ -104,10 +103,22 @@ HLTHiggsSubAnalysis::HLTHiggsSubAnalysis(const edm::ParameterSet & pset,
 	
 	try
 	{
-		  _isVBFHBB = anpset.getUntrackedParameter<bool>("isVBFHBB");
+		_isVBFHBB = anpset.getUntrackedParameter<bool>("isVBFHBB");
 	}
 	catch(edm::Exception)
 	{
+	}
+	
+	if( _isVBFHBB ) {
+	    try
+	    {
+		_multipleJetCuts = anpset.getUntrackedParameter<std::vector<double> >( "multipleJetCuts" ); 
+	    }
+	    catch(edm::Exception)
+	    {
+		edm::LogWarning("HiggsValidations") << "HLTHiggsSubAnalysis::beginRun, In "
+			    << _analysisname << " multipleJetCuts not found." ;
+	    }
 	}
 	
 	_dbe = edm::Service<DQMStore>().operator->();
@@ -127,7 +138,7 @@ HLTHiggsSubAnalysis::~HLTHiggsSubAnalysis()
 	}
 	if( _genJetSelector != 0)
 	{
-//  		delete _genPFJetSelector;
+  		delete _genJetSelector;
 		_genJetSelector =0;
 	}
 	if( _recMuonSelector != 0)
@@ -259,7 +270,7 @@ void HLTHiggsSubAnalysis::beginRun(const edm::Run & iRun, const edm::EventSetup 
 		
 		// the hlt path, the objects (elec,muons,photons,...)
 		// needed to evaluate the path are the argumens of the plotter
-		HLTHiggsPlotter analyzer(_pset, shortpath,objsNeedHLT, _minCandidates, _dbe);
+		HLTHiggsPlotter analyzer(_pset, shortpath,objsNeedHLT, _minCandidates, _isVBFHBB, _dbe);
 		_analyzers.push_back(analyzer);
     	}
 
@@ -290,6 +301,11 @@ void HLTHiggsSubAnalysis::beginRun(const edm::Run & iRun, const edm::EventSetup 
 				maxPt = "MaxPt";
 				maxPt += i+1;
 				bookHist(source, objStr, maxPt.Data());
+			}
+			if( _isVBFHBB ) {
+			    bookHist(source, objStr, "dEtaqq");
+			    bookHist(source, objStr, "mqq");
+			    bookHist(source, objStr, "dPhibb");
 			}
 		}
 	}
@@ -374,17 +390,45 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 	// --- same for RECO objects
 	
 	// Different treatment for jets (b-tag)
+	std::map<std::string,bool> nMinOne;
+	float dEtaqq;
+	float mqq;
+	float dPhibb;
 	if( _recLabels.find(EVTColContainer::CALOJET) != _recLabels.end() ) {
+	    	    
+	    // Initialize jet selector
+	    this->InitSelector(EVTColContainer::CALOJET);
 	    // Initialize and insert caloJets
-	    initAndInsertJets(iEvent, cols, matches);
+	    this->initAndInsertJets(iEvent, cols, matches);
 	    
 	    // Cuts on multiple jet events (RECO)
-	    if(_isVBFHBB && !passJetCuts(matches) ) {
-		matches->clear();
-	    }
+	    if (matches->size() >= _minCandidates && _isVBFHBB) {
+		std::map<std::string,bool> jetCutResult;
+		
+		this->passJetCuts(matches, jetCutResult, dEtaqq, mqq, dPhibb);
+		
+		//Make N-1 booleans from jetCutResults
+		nMinOne["MaxPt1"] = true;
+		nMinOne["MaxPt2"] = true;
+		nMinOne["MaxPt3"] = true;
+		nMinOne["MaxPt4"] = true;
+		nMinOne["dEtaqq"] = true;
+		nMinOne["mqq"] = true;
+		nMinOne["dPhibb"] = true;
+		for(std::map<std::string,bool>::const_iterator it = jetCutResult.begin(); it != jetCutResult.end(); ++it)
+		{
+		    for(std::map<std::string,bool>::const_iterator it2 = jetCutResult.begin(); it2 != jetCutResult.end(); ++it2)
+		    {
+			if( it->first != it2->first && !(it2->second) ) {
+			    nMinOne[it->first] = false;
+			    break;
+			}
+		    }
+		}
+	    }	
 	}
 
-	// Extraction of the other objects candidates 
+	// Extraction of the objects candidates 
 	for(std::map<unsigned int,std::string>::iterator it = _recLabels.begin();
 			it != _recLabels.end(); ++it)
 	{
@@ -436,8 +480,16 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 			float eta = (it->second)[j].eta;
 			float phi = (it->second)[j].phi;
 			
-			this->fillHist(u2str[it->first],objTypeStr,"Eta",eta);
-			this->fillHist(u2str[it->first],objTypeStr,"Phi",phi);
+			if( _isVBFHBB && objType == EVTColContainer::CALOJET && it->first == RECO ) {
+			    if( nMinOne["MaxPt1"] && nMinOne["MaxPt2"] ) {
+				this->fillHist(u2str[it->first],objTypeStr,"Eta",eta);
+				this->fillHist(u2str[it->first],objTypeStr,"Phi",phi);
+			    }
+			}
+			else {
+			    this->fillHist(u2str[it->first],objTypeStr,"Eta",eta);
+			    this->fillHist(u2str[it->first],objTypeStr,"Phi",phi);
+			}
 			
 			TString maxPt;
 			for( unsigned int i=0; i < _minCandidates; i++ )
@@ -446,21 +498,42 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 				{
 					maxPt = "MaxPt";
 					maxPt += i+1;
-					this->fillHist(u2str[it->first],objTypeStr,maxPt.Data(),pt);
-					// Filled the high pt ...
-					++((*countobjects)[objType]);
-					++counttotal;
-					break;
+					if( _isVBFHBB && objType == EVTColContainer::CALOJET && it->first == RECO ) {
+					    if( nMinOne[maxPt.Data()] ) {
+						this->fillHist(u2str[it->first],objTypeStr,maxPt.Data(),pt);
+						// Filled the high pt ...
+						++((*countobjects)[objType]);
+						++counttotal;
+					    }
+					}
+					else {
+					    this->fillHist(u2str[it->first],objTypeStr,maxPt.Data(),pt);
+					    // Filled the high pt ...
+					    ++((*countobjects)[objType]);
+					    ++counttotal;
+					}
+				break;
 				}
 			}
 			// Already the minimum two objects has been filled, get out...
 			if( counttotal == totalobjectssize2 )
 			{
 				break;
-			}
-				
-		}
+			}			
+		}				
 		delete countobjects;
+		
+		if( _isVBFHBB && it->first == RECO) {
+		    if( nMinOne["dEtaqq"] ) {
+			this->fillHist(u2str[it->first],EVTColContainer::getTypeString(EVTColContainer::CALOJET),"dEtaqq",dEtaqq);
+		    }
+		    if( nMinOne["mqq"] ) {
+			this->fillHist(u2str[it->first],EVTColContainer::getTypeString(EVTColContainer::CALOJET),"mqq",mqq);
+		    }
+		    if( nMinOne["dPhibb"] ) {
+			this->fillHist(u2str[it->first],EVTColContainer::getTypeString(EVTColContainer::CALOJET),"dPhibb",dPhibb);
+		    }
+		}
 	
 		// Calling to the plotters analysis (where the evaluation of the different trigger paths are done)
 		const std::string source = u2str[it->first];
@@ -469,7 +542,12 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 		{
 			const std::string hltPath = _shortpath2long[an->gethltpath()];
 			const bool ispassTrigger =  cols->triggerResults->accept(trigNames.triggerIndex(hltPath));
-			an->analyze(ispassTrigger,source,it->second);
+			if( _isVBFHBB && it->first == RECO) {
+			    an->analyze(ispassTrigger,source,it->second, nMinOne, dEtaqq, mqq, dPhibb);
+			}
+			else {
+			    an->analyze(ispassTrigger,source,it->second);
+			}
 		}
 	}
 }
@@ -535,9 +613,9 @@ void HLTHiggsSubAnalysis::bookobjects( const edm::ParameterSet & anpset )
 		_recLabels[EVTColContainer::PFTAU] = anpset.getParameter<std::string>("recPFTauLabel");
 		_genSelectorMap[EVTColContainer::PFTAU] = 0 ;
 	}
-	if( anpset.exists("recCaloJetLabel") )
+	if( anpset.exists("recJetLabel") )
 	{
-		_recLabels[EVTColContainer::CALOJET] = anpset.getParameter<std::string>("recCaloJetLabel");
+		_recLabels[EVTColContainer::CALOJET] = anpset.getParameter<std::string>("recJetLabel");
 		_genJetSelector = 0 ;
 	}
 	/*if( anpset.exists("recTrackLabel") )
@@ -684,6 +762,29 @@ void HLTHiggsSubAnalysis::bookHist(const std::string & source,
       	}
       	else 
 	{
+	    if( variable == "dEtaqq" ){
+		std::string title  = "#Delta #eta_{qq} of " + sourceUpper + " " + objType;
+		int    nBins = 20;
+	    	double min   = 0;
+	    	double max   = 4.8;
+	    	h = new TH1F(name.c_str(), title.c_str(), nBins, min, max);
+	    }
+	    else if ( variable == "mqq" ){
+		std::string title  = "m_{qq} of " + sourceUpper + " " + objType;
+		int    nBins = 20;
+	    	double min   = 0;
+	    	double max   = 800;
+	    	h = new TH1F(name.c_str(), title.c_str(), nBins, min, max);
+	    } 
+	    else if ( variable == "dPhibb" ){
+		std::string title  = "#Delta #phi_{bb} of " + sourceUpper + " " + objType;
+		int    nBins = 20;
+	    	double min   = 0;
+	    	double max   = 6.284;
+	    	h = new TH1F(name.c_str(), title.c_str(), nBins, min, max);
+	    } 
+	    else
+	    {
 		std::string symbol = (variable == "Eta") ? "#eta" : "#phi";
 		std::string title  = symbol + " of " + sourceUpper + " " + objType;
 		std::vector<double> params = (variable == "Eta") ? _parametersEta : _parametersPhi;
@@ -692,7 +793,8 @@ void HLTHiggsSubAnalysis::bookHist(const std::string & source,
 	    	double min   = params[1];
 	    	double max   = params[2];
 	    	h = new TH1F(name.c_str(), title.c_str(), nBins, min, max);
-      	}
+	    }
+	}
       	h->Sumw2();
       	_elements[name] = _dbe->book1D(name, h);
       	delete h;
@@ -756,7 +858,6 @@ void HLTHiggsSubAnalysis::initAndInsertJets(const edm::Event & iEvent, EVTColCon
     
     edm::Handle<reco::JetTagCollection> theTagHandle;
     iEvent.getByLabel("combinedSecondaryVertexBJetTags", theTagHandle);
-//     col->set(theTagHandle);
     
     for(reco::CaloJetCollection::const_iterator it = theHandle->begin(); 
 	it != theHandle->end(); ++it)
@@ -764,175 +865,48 @@ void HLTHiggsSubAnalysis::initAndInsertJets(const edm::Event & iEvent, EVTColCon
 	reco::CaloJetRef jetRef(theHandle, it - theHandle->begin());
 	reco::JetBaseRef jetBaseRef(jetRef); 
 	float bTag  = (*(theTagHandle.product()))[jetBaseRef];	
-	
+
 	if(_recCaloJetSelector->operator()(*it))
 	{
-	    matches->push_back(MatchStruct(&*it,EVTColContainer::CALOJET, bTag));
+ 	    matches->push_back(MatchStruct(&*it,EVTColContainer::CALOJET, bTag));
 	}
     }
 }
 
-bool HLTHiggsSubAnalysis::passJetCuts( std::vector<MatchStruct> * matches) 
-{
-    // Check there are enough jets
-    if (matches->size() < _minCandidates) {
-	return false;
-    }
-    
+void HLTHiggsSubAnalysis::passJetCuts( std::vector<MatchStruct> * matches, std::map<std::string,bool> & jetCutResult, float & dEtaqq, float & mqq, float & dPhibb) 
+{ 
+    jetCutResult["MaxPt1"] = false;
+    jetCutResult["MaxPt2"] = false;
+    jetCutResult["MaxPt3"] = false;
+    jetCutResult["MaxPt4"] = false;
+    jetCutResult["dEtaqq"] = false;
+    jetCutResult["mqq"] = false;
+    jetCutResult["dPhibb"] = false;
+		
     // Perform pt cuts
     std::sort(matches->begin(), matches->end(), matchesByDescendingPt());
-    if( (matches->at(0)).pt < 85 || (matches->at(1)).pt < 70 || (matches->at(2)).pt < 60 || (matches->at(3)).pt < 40 ) {
-	return false;
-    }
-// 	// Create MatchStruct with 4 highest pt jets
-// 	std::vector<MatchStruct> highPtMatches(matches->begin(), matches->begin()+4);
-    
-    // Perform eta ordered cuts
-    std::sort(matches->begin(), matches->begin()+4, matchesByDescendingEta());
-    double mass = sqrt(pow(matches->at(0).energy + matches->at(3).energy,2) + (matches->at(0).momentum + matches->at(3).momentum).Mag2() );
-    if( matches->at(0).eta - matches->at(3).eta < 2.5 || mass < 300 ) {
-	return false;
-    }
-    
+    if( (matches->at(0)).pt > _multipleJetCuts.at(0) ) jetCutResult["MaxPt1"] = true;
+    if( (matches->at(1)).pt > _multipleJetCuts.at(1) ) jetCutResult["MaxPt2"] = true;
+    if( (matches->at(2)).pt > _multipleJetCuts.at(2) ) jetCutResult["MaxPt3"] = true;
+    if( (matches->at(3)).pt > _multipleJetCuts.at(3) ) jetCutResult["MaxPt4"] = true;
+        
     // Perform b-tag ordered cuts
     std::sort(matches->begin(), matches->begin()+4, matchesByDescendingBtag());
-    mass = sqrt(pow(matches->at(2).energy + matches->at(3).energy,2) + (matches->at(2).momentum + matches->at(3).momentum).Mag2() );
-    if( matches->at(2).eta - matches->at(3).eta < 2.5 || mass < 300 ) {
-	return false;
-    }
-    return true;
-}  
-//     double ptMax[4] = {};
-//     unsigned int ptMaxPos[4] = {};
-//     for(size_t i = 0; i < cols->caloJets->size(); i++)
-//     {
-// 	    if(_recCaloJetSelector->operator()(cols->caloJets->at(i)))
-// 	    {
-// 		    matches->push_back(MatchStruct(&cols->caloJets->at(i),objType == EVTColContainer::CALOJET));
-// 		    if(_isVBFHBB) {				
-// 			// Get ordering in pt
-// 			if( matches->back().pt > ptMax[0]) {
-// 			ptMax[3] = ptMax[2];
-// 			ptMax[2] = ptMax[1];
-// 			ptMax[1] = ptMax[0];
-// 			ptMax[0] = matches->back().pt;
-// 			ptMaxPos[3] = ptMaxPos[2];
-// 			ptMaxPos[2] = ptMaxPos[1];
-// 			ptMaxPos[1] = ptMaxPos[0];
-// 			ptMaxPos[0] = i;
-// 			}
-// 			else if( matches->back().pt > ptMax[1]) {
-// 			ptMax[3] = ptMax[2];
-// 			ptMax[2] = ptMax[1];
-// 			ptMax[1] = matches->back().pt;
-// 			ptMaxPos[3] = ptMaxPos[2];
-// 			ptMaxPos[2] = ptMaxPos[1];
-// 			ptMaxPos[1] = i;
-// 			}
-// 			else if( matches->back().pt > ptMax[2]) {
-// 			ptMax[3] = ptMax[2];
-// 			ptMax[2] = matches->back().pt;
-// 			ptMaxPos[3] = ptMaxPos[2];
-// 			ptMaxPos[2] = i;
-// 			}
-// 			else if( matches->back().pt > ptMax[3]) {
-// 			ptMax[3] = matches->back().pt;
-// 			ptMaxPos[3] = i;				  
-// 			}		
-// 		    }
-// 	    }
-//     }
-//     if(_isVBFHBB) {	
-// 	// Perform pt cuts
-// 	if( (cols->caloJets->at(ptMaxPos[0]).pt() < 85) || (cols->caloJets->at(ptMaxPos[1]).pt() < 70) || (cols->caloJets->at(ptMaxPos[2]).pt() < 60) || (cols->caloJets->at(ptMaxPos[3]).pt() < 40) ) {
-// 	matches->clear();
-// 	return;
-// 	}
-// 			
-// 	// Order in Eta and cut
-// 	double etaMin = cols->caloJets->at(ptMaxPos[0]).eta();
-// 	double etaMax = etaMin;
-// 	unsigned int etaMinPos = ptMaxPos[0];
-// 	unsigned int etaMaxPos = ptMaxPos[0];
-// 	for( unsigned int i=1; i<4; i++) {
-// 	if( cols->caloJets->at(ptMaxPos[i]).eta() < etaMin) {
-// 	    etaMin = cols->caloJets->at(ptMaxPos[i]).eta();
-// 	    etaMinPos = ptMaxPos[i];
-// 	}
-// 	else if( cols->caloJets->at(ptMaxPos[i]).eta() > etaMax) {
-// 	    etaMax = cols->caloJets->at(ptMaxPos[i]).eta();
-// 	    etaMaxPos = ptMaxPos[i];
-// 	}
-// 	}
-// 	
-// // 		  const math::XYZTLorentzVector vector1 = *(cols->caloJets->at(etaMaxPos).p4());
-// // 		  const math::XYZTLorentzVector vector2 = *(cols->caloJets->at(etaMinPos).p4());
-// // 		  math::XYZTLorentzVector totVector = vector1 + vector2;
-// 	double mass = sqrt(pow(cols->caloJets->at(etaMaxPos).energy() + cols->caloJets->at(etaMinPos).energy(),2) + (cols->caloJets->at(etaMaxPos).momentum() + cols->caloJets->at(etaMinPos).momentum()).Mag2() );
-// 	if( (etaMax - etaMin) < 2.5 || /*totVector.M2()*/ mass < 300 ) {
-// 	matches->clear();
-// 	return;
-// 	}
-// 	
-// 	// --- Order in b-tagging value and cut
-// 	double bTagMax[4] = {};
-// 	unsigned int bTagMaxPos[4] = {};
-// 	unsigned int counter = 0;
-// 	
-// 	for(reco::CaloJetCollection::const_iterator it = cols->hCaloJets->begin(); 
-// 		it != cols->hCaloJets->end(); ++it)
-// 	{	
-// 	// Only loop over 4 highest pt jets
-// 	if( counter != ptMaxPos[0] && counter != ptMaxPos[1] && counter != ptMaxPos[2] && counter != ptMaxPos[3]) {
-// 	    continue;
-// 	}
-// 	
-// 	// Get CSV b-tagging value
-// 	reco::CaloJetRef jetRef(cols->hCaloJets, it - cols->hCaloJets->begin());
-// 	reco::JetBaseRef jetBaseRef(jetRef);		  
-// 	double bTag  = (*(cols->jetTags))[jetBaseRef]; 
-// 	
-// 	// Order
-// 	if( bTag > bTagMax[0]) {
-// 	    bTagMax[3] = bTagMax[2];
-// 	    bTagMax[2] = bTagMax[1];
-// 	    bTagMax[1] = bTagMax[0];
-// 	    bTagMax[0] = bTag;
-// 	    bTagMaxPos[3] = bTagMaxPos[2];
-// 	    bTagMaxPos[2] = bTagMaxPos[1];
-// 	    bTagMaxPos[1] = bTagMaxPos[0];
-// 	    bTagMaxPos[0] = counter;
-// 	}
-// 	else if( bTag > bTagMax[1]) {
-// 	    bTagMax[3] = bTagMax[2];
-// 	    bTagMax[2] = bTagMax[1];
-// 	    bTagMax[1] = bTag;
-// 	    bTagMaxPos[3] = bTagMaxPos[2];
-// 	    bTagMaxPos[2] = bTagMaxPos[1];
-// 	    bTagMaxPos[1] = counter;
-// 	}
-// 	else if( bTag > bTagMax[2]) {
-// 	    bTagMax[3] = bTagMax[2];
-// 	    bTagMax[2] = bTag;
-// 	    bTagMaxPos[3] = bTagMaxPos[2];
-// 	    bTagMaxPos[2] = counter;
-// 	}
-// 	else if( bTag > bTagMax[3]) {
-// 	    bTagMax[3] = bTag;
-// 	    bTagMaxPos[3] = counter;				  
-// 	}
-// 	counter++;
-// 	}
-// 	
-// 	// Perform B-tag ordered cuts
-// 	mass = sqrt(pow(cols->caloJets->at(bTagMaxPos[2]).energy() + cols->caloJets->at(bTagMaxPos[3]).energy(),2) + (cols->caloJets->at(bTagMaxPos[2]).momentum() + cols->caloJets->at(bTagMaxPos[3]).momentum()).Mag2() );
-// 	if( fabs(cols->caloJets->at(bTagMaxPos[2]).eta() - cols->caloJets->at(bTagMaxPos[3]).eta()) < 2.5 || mass < 300 ) {
-// 	matches->clear();
-// 	return;
-// 	}
-//     }
-// }
+    dEtaqq =  fabs(matches->at(2).eta - matches->at(3).eta);
+    if( dEtaqq > _multipleJetCuts.at(4) ) jetCutResult["dEtaqq"] = true;
+    mqq = (matches->at(2).lorentzVector + matches->at(3).lorentzVector).M2();
+//     mqq = sqrt(pow(matches->at(2).energy + matches->at(3).energy,2) + (matches->at(2).momentum + matches->at(3).momentum).Mag2() );
+    if( mqq > _multipleJetCuts.at(5) ) jetCutResult["mqq"] = true;
+    dPhibb = fabs(matches->at(0).phi - matches->at(1).phi);
+    if( dPhibb < _multipleJetCuts.at(6) ) jetCutResult["dPhibb"] = true;
     
+    // Perform eta ordered cuts
+//     std::sort(matches->begin(), matches->begin()+4, matchesByDescendingEta());
+//     mass = sqrt(pow(matches->at(0).energy + matches->at(3).energy,2) + (matches->at(0).momentum + matches->at(3).momentum).Mag2() );
+//     if( matches->at(0).eta - matches->at(3).eta < 2.5 || mass < 300 ) {
+// 	return false;
+//     }
+}      
 
 void HLTHiggsSubAnalysis::insertcandidates(const unsigned int & objType, const EVTColContainer * cols, 
 		std::vector<MatchStruct> * matches)
@@ -987,10 +961,10 @@ void HLTHiggsSubAnalysis::insertcandidates(const unsigned int & objType, const E
 			}
 		}
 	}
-	else if( objType == EVTColContainer::CALOJET )
-	{
-	
-	}
+// 	else if( objType == EVTColContainer::CALOJET )
+// 	{
+// 	
+// 	}
 	/*else if( objType == EVTColContainer::TRACK )
 	{
 		for(size_t i = 0; i < cols->tracks->size(); i++)

@@ -68,10 +68,10 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
     MET_cutMaxEta   = cms.double(0),  # TO BE DEPRECATED
     
     # --- Jets: 
-    CaloJet_genCut      = cms.string("pt > 0."),
-    CaloJet_recCut      = cms.string("pt > 0."),  
-    CaloJet_cutMinPt    = cms.double(0), # TO BE DEPRECATED
-    CaloJet_cutMaxEta   = cms.double(0),  # TO BE DEPRECATED
+    Jet_genCut      = cms.string("pt > 0."),
+    Jet_recCut      = cms.string("pt > 0."),  
+    Jet_cutMinPt    = cms.double(0), # TO BE DEPRECATED
+    Jet_cutMaxEta   = cms.double(0),  # TO BE DEPRECATED
     
     
 
@@ -81,7 +81,7 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
     #    - hltPathsToCheck (cms.vstring) : a list of all the trigger pats to be checked 
     #                 in this analysis. Up to the version number _v, but not including 
     #                 the number in order to avoid this version dependence. Example: HLT_Mu18_v
-    #    - recVarLabel (cms.string): where Var can be Muon, Elec, Photon, CaloMET, PFTau, CaloJet. This 
+    #    - recVarLabel (cms.string): where Var can be Muon, Elec, Photon, CaloMET, PFTau, Jet. This 
     #                 attribute is the name of the INSTANCE LABEL for each RECO collection to 
     #                 be considered in the analysis. Note that the trigger paths rely on some 
     #                 objects which need to be defined here, otherwise the code will complain. 
@@ -149,9 +149,10 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
 		    "HLT_QuadJet75_55_35_20_BTagIP_VBF_v",
 		    "HLT_QuadJet75_55_38_20_BTagIP_VBF_v"
 		    ),
-	    recCaloJetLabel  = cms.string("ak5CaloJets"),
+	    recJetLabel  = cms.string("ak5CaloJets"),
 	    # -- Analysis specific cuts
 	    minCandidates = cms.uint32(4), 
-	    isVBFHBB   = cms.untracked.bool(True)
+	    isVBFHBB   = cms.untracked.bool(True),
+	    multipleJetCuts = cms.untracked.vdouble(85, 70, 60, 40, 2.4, 300, 2), #pt1, pt2, pt3, pt4, dEtaqq, mqq, dPhibb 
 	    ),
 )

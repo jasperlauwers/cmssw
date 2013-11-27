@@ -80,7 +80,7 @@ class HLTHiggsSubAnalysis
 		void InitSelector(const unsigned int & objtype);
 		void initAndInsertJets(const edm::Event & iEvent, EVTColContainer * cols, 
 				std::vector<MatchStruct> * matches);
-		bool passJetCuts( std::vector<MatchStruct> * matches); 
+		void passJetCuts(std::vector<MatchStruct> * matches, std::map<std::string,bool> & jetCutResult, float & dEtaqq, float & mqq, float & dPhibb); 
 		void insertcandidates(const unsigned int & objtype, const EVTColContainer * col,
 				std::vector<MatchStruct> * matches);
 
@@ -140,6 +140,7 @@ class HLTHiggsSubAnalysis
 		
 		//bool to determine if VBFHbb plots have to be made
 		bool _isVBFHBB;
+		std::vector<double> _multipleJetCuts;
 		
 		// The plotters: managers of each hlt path where the plots are done
 		std::vector<HLTHiggsPlotter> _analyzers;

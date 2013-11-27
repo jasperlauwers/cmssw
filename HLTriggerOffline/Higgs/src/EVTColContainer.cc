@@ -203,7 +203,7 @@ struct EVTColContainer
 		}
 		else if( objtype == EVTColContainer::CALOJET )
 		{
-			objTypestr = "CaloJet";
+			objTypestr = "Jet";
 		}
 		/*else if( objtype == EVTColContainer::TRACK )
 		{
