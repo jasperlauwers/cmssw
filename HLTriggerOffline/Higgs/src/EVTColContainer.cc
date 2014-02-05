@@ -27,8 +27,8 @@
 #include "DataFormats/TauReco/interface/PFTau.h"
 #include "DataFormats/TauReco/interface/PFTauFwd.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
-#include "DataFormats/JetReco/interface/CaloJet.h"
-#include "DataFormats/JetReco/interface/CaloJetCollection.h"
+#include "DataFormats/JetReco/interface/PFJet.h"
+#include "DataFormats/JetReco/interface/PFJetCollection.h"
 #include "DataFormats/BTauReco/interface/JetTag.h"
 #include "DataFormats/JetReco/interface/GenJet.h"
 #include "DataFormats/JetReco/interface/GenJetCollection.h"
@@ -46,7 +46,7 @@ struct EVTColContainer
 		PHOTON,
 		CALOMET,
 		PFTAU,
-		CALOJET,
+		PFJET,
 //		TRACK,
 		_nMAX
 	};
@@ -60,7 +60,7 @@ struct EVTColContainer
 	const std::vector<reco::Photon> * photons;
 	const std::vector<reco::CaloMET> * caloMETs;
 	const std::vector<reco::PFTau> * pfTaus;
-	const std::vector<reco::CaloJet> * caloJets;
+	const std::vector<reco::PFJet> * pfJets;
 	const reco::JetTagCollection * jetTags;
 	//const std::vector<reco::Track> * tracks;
 	const trigger::TriggerEventWithRefs * rawTriggerEvent;
@@ -75,7 +75,7 @@ struct EVTColContainer
 		electrons(0),
 		photons(0),
 		pfTaus(0),
-		caloJets(0),
+		pfJets(0),
 		jetTags(0),
 		//tracks(0),
 		rawTriggerEvent(0),
@@ -97,7 +97,7 @@ struct EVTColContainer
 	{
 		nInitialized = 0;
 		genParticles = 0; genJets = 0;
-		muons = 0; electrons = 0; photons = 0; pfTaus=0; caloMETs=0; caloJets=0; //tracks=0; 
+		muons = 0; electrons = 0; photons = 0; pfTaus=0; caloMETs=0; pfJets=0; //tracks=0; 
 		jetTags = 0;
 		rawTriggerEvent = 0;
 		triggerResults = 0;
@@ -128,9 +128,9 @@ struct EVTColContainer
 		pfTaus = v;
 		++nInitialized;
 	}
-	void set(const reco::CaloJetCollection * v)
+	void set(const reco::PFJetCollection * v)
 	{
-		caloJets = v;
+		pfJets = v;
 		++nInitialized;
 	}
 	void set(const reco::JetTagCollection * v)
@@ -165,9 +165,9 @@ struct EVTColContainer
 		{
 			size = pfTaus->size();
 		}
-		else if( objtype == EVTColContainer::CALOJET && caloJets != 0 )
+		else if( objtype == EVTColContainer::PFJET && pfJets != 0 )
 		{
-			size = caloJets->size();
+			size = pfJets->size();
 		}
 		/*else if( objtype == EVTColContainer::TRACK && tracks != 0 )
 		{
@@ -201,7 +201,7 @@ struct EVTColContainer
 		{
 			objTypestr = "PFTau";
 		}
-		else if( objtype == EVTColContainer::CALOJET )
+		else if( objtype == EVTColContainer::PFJET )
 		{
 			objTypestr = "Jet";
 		}

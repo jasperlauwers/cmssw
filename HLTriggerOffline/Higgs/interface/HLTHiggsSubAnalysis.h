@@ -35,7 +35,7 @@
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
-#include "DataFormats/JetReco/interface/CaloJet.h"
+#include "DataFormats/JetReco/interface/PFJet.h"
 #include "DataFormats/JetReco/interface/GenJet.h"
 #include "CommonTools/Utils/interface/StringCutObjectSelector.h"
 
@@ -135,7 +135,7 @@ class HLTHiggsSubAnalysis
 	      	StringCutObjectSelector<reco::CaloMET>     * _recCaloMETSelector;
 	      	StringCutObjectSelector<reco::PFTau>       * _recPFTauSelector;
 	      	StringCutObjectSelector<reco::Photon>      * _recPhotonSelector;
-		StringCutObjectSelector<reco::CaloJet>      * _recCaloJetSelector;
+		StringCutObjectSelector<reco::PFJet>      * _recPFJetSelector;
 	      	StringCutObjectSelector<reco::Track>       * _recTrackSelector;
 		
 		//bool to determine if VBFHbb plots have to be made

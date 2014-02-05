@@ -40,7 +40,7 @@ HLTHiggsSubAnalysis::HLTHiggsSubAnalysis(const edm::ParameterSet & pset,
 	_recCaloMETSelector(0),
 	_recPFTauSelector(0),
 	_recPhotonSelector(0),
-	_recCaloJetSelector(0),
+	_recPFJetSelector(0),
 	_recTrackSelector(0),
 	_isVBFHBB(0),
 	_multipleJetCuts(0),
@@ -166,10 +166,10 @@ HLTHiggsSubAnalysis::~HLTHiggsSubAnalysis()
 		delete _recPFTauSelector;
 		_recPFTauSelector =0;
 	}
-	if( _recCaloJetSelector != 0)
+	if( _recPFJetSelector != 0)
 	{
-		delete _recCaloJetSelector;
-		_recCaloJetSelector =0;
+		delete _recPFJetSelector;
+		_recPFJetSelector =0;
 	}
 	if( _recTrackSelector != 0)
 	{
@@ -333,19 +333,19 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 			it != _recLabels.end(); ++it)
 	{
 		// Use genJets when object is a jet
-		if(it->first == EVTColContainer::CALOJET)
+		if(it->first == EVTColContainer::PFJET)
 		{
 			// Initialize selector when first event
 			if(!_genJetSelector) 
 			{
-				_genJetSelector = new StringCutObjectSelector<reco::GenJet>(_genCut[EVTColContainer::CALOJET]); 
+				_genJetSelector = new StringCutObjectSelector<reco::GenJet>(_genCut[EVTColContainer::PFJET]); 
 			} 
 			
 			for(size_t i = 0; i < cols->genJets->size(); ++i)
 			{
 				if(_genJetSelector->operator()(cols->genJets->at(i)))
 				{
-					matches->push_back(MatchStruct(&cols->genJets->at(i),EVTColContainer::CALOJET));
+					matches->push_back(MatchStruct(&cols->genJets->at(i),EVTColContainer::PFJET));
 				}
 			}			
 		}
@@ -394,11 +394,11 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 	float dEtaqq;
 	float mqq;
 	float dPhibb;
-	if( _recLabels.find(EVTColContainer::CALOJET) != _recLabels.end() ) {
+	if( _recLabels.find(EVTColContainer::PFJET) != _recLabels.end() ) {
 	    	    
 	    // Initialize jet selector
-	    this->InitSelector(EVTColContainer::CALOJET);
-	    // Initialize and insert caloJets
+	    this->InitSelector(EVTColContainer::PFJET);
+	    // Initialize and insert pfJets
 	    this->initAndInsertJets(iEvent, cols, matches);
 	    
 	    // Cuts on multiple jet events (RECO)
@@ -480,7 +480,7 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 			float eta = (it->second)[j].eta;
 			float phi = (it->second)[j].phi;
 			
-			if( _isVBFHBB && objType == EVTColContainer::CALOJET && it->first == RECO ) {
+			if( _isVBFHBB && objType == EVTColContainer::PFJET && it->first == RECO ) {
 			    if( nMinOne["MaxPt1"] && nMinOne["MaxPt2"] ) {
 				this->fillHist(u2str[it->first],objTypeStr,"Eta",eta);
 				this->fillHist(u2str[it->first],objTypeStr,"Phi",phi);
@@ -498,7 +498,7 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 				{
 					maxPt = "MaxPt";
 					maxPt += i+1;
-					if( _isVBFHBB && objType == EVTColContainer::CALOJET && it->first == RECO ) {
+					if( _isVBFHBB && objType == EVTColContainer::PFJET && it->first == RECO ) {
 					    if( nMinOne[maxPt.Data()] ) {
 						this->fillHist(u2str[it->first],objTypeStr,maxPt.Data(),pt);
 						// Filled the high pt ...
@@ -525,13 +525,13 @@ void HLTHiggsSubAnalysis::analyze(const edm::Event & iEvent, const edm::EventSet
 		
 		if( _isVBFHBB && it->first == RECO) {
 		    if( nMinOne["dEtaqq"] ) {
-			this->fillHist(u2str[it->first],EVTColContainer::getTypeString(EVTColContainer::CALOJET),"dEtaqq",dEtaqq);
+			this->fillHist(u2str[it->first],EVTColContainer::getTypeString(EVTColContainer::PFJET),"dEtaqq",dEtaqq);
 		    }
 		    if( nMinOne["mqq"] ) {
-			this->fillHist(u2str[it->first],EVTColContainer::getTypeString(EVTColContainer::CALOJET),"mqq",mqq);
+			this->fillHist(u2str[it->first],EVTColContainer::getTypeString(EVTColContainer::PFJET),"mqq",mqq);
 		    }
 		    if( nMinOne["dPhibb"] ) {
-			this->fillHist(u2str[it->first],EVTColContainer::getTypeString(EVTColContainer::CALOJET),"dPhibb",dPhibb);
+			this->fillHist(u2str[it->first],EVTColContainer::getTypeString(EVTColContainer::PFJET),"dPhibb",dPhibb);
 		    }
 		}
 	
@@ -563,7 +563,7 @@ const std::vector<unsigned int> HLTHiggsSubAnalysis::getObjectsType(const std::s
 		EVTColContainer::PHOTON,
 //		EVTColContainer::TRACK,  // Note is tracker muon
 	       	EVTColContainer::PFTAU,
-		EVTColContainer::CALOJET,
+		EVTColContainer::PFJET,
 		EVTColContainer::CALOMET
 	};
 
@@ -615,7 +615,7 @@ void HLTHiggsSubAnalysis::bookobjects( const edm::ParameterSet & anpset )
 	}
 	if( anpset.exists("recJetLabel") )
 	{
-		_recLabels[EVTColContainer::CALOJET] = anpset.getParameter<std::string>("recJetLabel");
+		_recLabels[EVTColContainer::PFJET] = anpset.getParameter<std::string>("recJetLabel");
 		_genJetSelector = 0 ;
 	}
 	/*if( anpset.exists("recTrackLabel") )
@@ -673,7 +673,7 @@ void HLTHiggsSubAnalysis::initobjects(const edm::Event & iEvent, EVTColContainer
 		}
 		
 		// GenJet collection if it is needed
-		if( _recLabels.find(EVTColContainer::CALOJET) != _recLabels.end() )
+		if( _recLabels.find(EVTColContainer::PFJET) != _recLabels.end() )
 		{
 			edm::Handle<reco::GenJetCollection> genJet;
 			iEvent.getByLabel(_genJetLabel,genJet);
@@ -717,7 +717,7 @@ void HLTHiggsSubAnalysis::initobjects(const edm::Event & iEvent, EVTColContainer
 			iEvent.getByLabel(it->second, theHandle);
 			col->set(theHandle.product());
 		}
-		else if( it->first == EVTColContainer::CALOJET )
+		else if( it->first == EVTColContainer::PFJET )
 		{
 
 		}
@@ -835,9 +835,9 @@ void HLTHiggsSubAnalysis::InitSelector(const unsigned int & objtype)
 	{
 		_recPFTauSelector = new StringCutObjectSelector<reco::PFTau>(_recCut[objtype]);
 	}
-	else if( objtype == EVTColContainer::CALOJET && _recCaloJetSelector == 0 )
+	else if( objtype == EVTColContainer::PFJET && _recPFJetSelector == 0 )
 	{
-		_recCaloJetSelector = new StringCutObjectSelector<reco::CaloJet>(_recCut[objtype]);
+		_recPFJetSelector = new StringCutObjectSelector<reco::PFJet>(_recCut[objtype]);
 	}
 	/*else if( objtype == EVTColContainer::TRACK && _recTrackSelector == 0)
 	{
@@ -852,23 +852,23 @@ FIXME: ERROR NO IMPLEMENTADO
 void HLTHiggsSubAnalysis::initAndInsertJets(const edm::Event & iEvent, EVTColContainer * cols, 
 		std::vector<MatchStruct> * matches)
 {
-    edm::Handle<reco::CaloJetCollection> theHandle;
-    iEvent.getByLabel(_recLabels[EVTColContainer::CALOJET], theHandle);
+    edm::Handle<reco::PFJetCollection> theHandle;
+    iEvent.getByLabel(_recLabels[EVTColContainer::PFJET], theHandle);
     cols->set(theHandle.product());
     
     edm::Handle<reco::JetTagCollection> theTagHandle;
-    iEvent.getByLabel("combinedSecondaryVertexBJetTags", theTagHandle);
+    iEvent.getByLabel("pfCombinedSecondaryVertexBJetTags", theTagHandle);
     
-    for(reco::CaloJetCollection::const_iterator it = theHandle->begin(); 
+    for(reco::PFJetCollection::const_iterator it = theHandle->begin(); 
 	it != theHandle->end(); ++it)
     {	
-	reco::CaloJetRef jetRef(theHandle, it - theHandle->begin());
+	reco::PFJetRef jetRef(theHandle, it - theHandle->begin());
 	reco::JetBaseRef jetBaseRef(jetRef); 
 	float bTag  = (*(theTagHandle.product()))[jetBaseRef];	
 
-	if(_recCaloJetSelector->operator()(*it))
+	if(_recPFJetSelector->operator()(*it))
 	{
- 	    matches->push_back(MatchStruct(&*it,EVTColContainer::CALOJET, bTag));
+ 	    matches->push_back(MatchStruct(&*it,EVTColContainer::PFJET, bTag));
 	}
     }
 }
@@ -961,7 +961,7 @@ void HLTHiggsSubAnalysis::insertcandidates(const unsigned int & objType, const E
 			}
 		}
 	}
-// 	else if( objType == EVTColContainer::CALOJET )
+// 	else if( objType == EVTColContainer::PFJET )
 // 	{
 // 	
 // 	}

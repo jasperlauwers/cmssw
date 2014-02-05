@@ -126,7 +126,7 @@ hltHiggsPostHtaunu = hltHiggsPostProcessor.clone()
 hltHiggsPostHtaunu.subDirs = ['HLT/Higgs/Htaunu']
 hltHiggsPostHtaunu.efficiencyProfile = efficiency_strings
 
-#Need other plots for VBFHbb
+#Specific plots for VBFHbb
 isVBFHBB = (_config.__getattribute__("Hbb")).__getattribute__("isVBFHBB")
 if isVBFHBB: 
     plot_types = ["TurnOn1", "TurnOn2", "TurnOn3", "TurnOn4", "EffdEtaqq", "Effmqq", "EffdPhibb"]

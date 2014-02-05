@@ -185,7 +185,7 @@ void HLTHiggsPlotter::analyze(const bool & isPassTrigger, const std::string & so
     float eta = matches[j].eta;
     float phi = matches[j].phi;
     
-    if( objType == EVTColContainer::CALOJET )
+    if( objType == EVTColContainer::PFJET )
     {
 	if( nMinOne.at("MaxPt1") && nMinOne.at("MaxPt2") ) {
 	    this->fillHist(isPassTrigger,source,objTypeStr,"Eta",eta);
@@ -205,7 +205,7 @@ void HLTHiggsPlotter::analyze(const bool & isPassTrigger, const std::string & so
       {
 	maxPt = "MaxPt";
 	maxPt += i+1;
-	if( objType == EVTColContainer::CALOJET) {
+	if( objType == EVTColContainer::PFJET) {
 	    if( nMinOne.at(maxPt.Data()) ) {
 		this->fillHist(isPassTrigger,source,objTypeStr,maxPt.Data(),pt);
 		// Filled the high pt ...
@@ -230,13 +230,13 @@ void HLTHiggsPlotter::analyze(const bool & isPassTrigger, const std::string & so
   }
   
   if( nMinOne.at("dEtaqq") ) {
-    this->fillHist(isPassTrigger,source,EVTColContainer::getTypeString(EVTColContainer::CALOJET),"dEtaqq",dEtaqq);
+    this->fillHist(isPassTrigger,source,EVTColContainer::getTypeString(EVTColContainer::PFJET),"dEtaqq",dEtaqq);
   }
   if( nMinOne.at("mqq") ) {
-    this->fillHist(isPassTrigger,source,EVTColContainer::getTypeString(EVTColContainer::CALOJET),"mqq",mqq);
+    this->fillHist(isPassTrigger,source,EVTColContainer::getTypeString(EVTColContainer::PFJET),"mqq",mqq);
   }
   if( nMinOne.at("dPhibb") ) {
-    this->fillHist(isPassTrigger,source,EVTColContainer::getTypeString(EVTColContainer::CALOJET),"dPhibb",dPhibb);
+    this->fillHist(isPassTrigger,source,EVTColContainer::getTypeString(EVTColContainer::PFJET),"dPhibb",dPhibb);
   }  
 }
 
