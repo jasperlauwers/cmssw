@@ -302,7 +302,7 @@ void HLTHiggsSubAnalysis::beginRun(const edm::Run & iRun, const edm::EventSetup 
 				maxPt += i+1;
 				bookHist(source, objStr, maxPt.Data());
 			}
-			if( _isVBFHBB ) {
+			if( _isVBFHBB && source == "rec" ) {
 			    bookHist(source, objStr, "dEtaqq");
 			    bookHist(source, objStr, "mqq");
 			    bookHist(source, objStr, "dPhibb");

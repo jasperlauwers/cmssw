@@ -64,14 +64,14 @@ def efficiency_string(objtype,plot_type,triggerpath):
 		    all_titles,input_type,triggerpath,input_type)
 
 # Adding the reco objects
-def add_reco_strings(strings):
+def get_reco_strings(strings):
     reco_strings = []
     for entry in strings:
         reco_strings.append(entry
                             .replace("Generated", "Reconstructed")
                             .replace("Gen", "Reco")
                             .replace("gen", "rec"))
-    strings.extend(reco_strings)
+    return reco_strings
 
 
 plot_types = ["TurnOn1", "TurnOn2", "EffEta", "EffPhi"]
@@ -100,7 +100,7 @@ for type in plot_types:
 	for trig in triggers:
 	    efficiency_strings.append(efficiency_string(obj,type,trig))
 
-add_reco_strings(efficiency_strings)
+efficiency_strings.extend(get_reco_strings(efficiency_strings))
 
 hltHiggsPostHTauNu = hltHiggsPostProcessor.clone()
 hltHiggsPostHTauNu.subDirs = ['HLT/Higgs/Htaunu']
@@ -131,13 +131,17 @@ isVBFHBB = (_config.__getattribute__("Hbb")).__getattribute__("isVBFHBB")
 if isVBFHBB: 
     plot_types = ["TurnOn1", "TurnOn2", "TurnOn3", "TurnOn4", "EffdEtaqq", "Effmqq", "EffdPhibb"]
 
-efficiency_strings = []    
-for type in plot_types:
-    for obj in obj_types:
-	for trig in triggers:
+efficiency_strings = []
+efficiency_reco_strings = []
+for obj in obj_types:
+    for trig in triggers:
+	for type in plot_types[0:4]:
 	    efficiency_strings.append(efficiency_string(obj,type,trig))
+	    efficiency_reco_strings.append(efficiency_string(obj,type,trig))
+	for type in plot_types[4:]:
+	    efficiency_reco_strings.append(efficiency_string(obj,type,trig))
 	    
-add_reco_strings(efficiency_strings)
+efficiency_strings.extend(get_reco_strings(efficiency_reco_strings))
     
 hltHiggsPostHbb = hltHiggsPostProcessor.clone()
 hltHiggsPostHbb.subDirs = ['HLT/Higgs/Hbb']

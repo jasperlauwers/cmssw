@@ -86,7 +86,7 @@ void HLTHiggsPlotter::beginRun(const edm::Run & iRun,
 	maxPt += i+1;
 	bookHist(source, objTypeStr, maxPt.Data());
       }
-      if( _isVBFHBB ) {
+      if( _isVBFHBB && source == "rec" ) {
 	bookHist(source, objTypeStr, "dEtaqq");
 	bookHist(source, objTypeStr, "mqq");
 	bookHist(source, objTypeStr, "dPhibb");
