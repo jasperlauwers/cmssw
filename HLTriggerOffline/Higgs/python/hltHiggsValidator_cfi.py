@@ -31,7 +31,7 @@ hltHiggsValidator = cms.EDAnalyzer("HLTHiggsValidator",
     # -- (NBins, minVal, maxValue) for the Eta,Phi and nInterations efficiency plots
     parametersEta      = cms.vdouble(48, -2.400, 2.400),
     parametersPhi      = cms.vdouble(50, -3.142, 3.142),
-    parametersPu       = cms.vdouble(10, 0, 20),
+    parametersPu       = cms.vdouble(10, 20, 50),
     parametersHt       = cms.untracked.vdouble(100, 0, 1000),
 
     # TO BE DEPRECATED --------------------------------------------
