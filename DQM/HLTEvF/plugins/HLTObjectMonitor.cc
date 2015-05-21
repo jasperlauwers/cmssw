@@ -149,6 +149,8 @@ class HLTObjectMonitor : public DQMEDAnalyzer {
   edm::ParameterSet pfHtPt_TH1;
   edm::ParameterSet bJetPhi_TH1;
   edm::ParameterSet bJetEta_TH1;
+  edm::ParameterSet diMuonMass_TH1;
+  edm::ParameterSet diElecMass_TH1;
 
   //setup path names
   string alphaT_pathName;
@@ -165,7 +167,9 @@ class HLTObjectMonitor : public DQMEDAnalyzer {
   string bJetPlots_pathName;
   string bJetPlots_pathNameOR;
   string jetAK8Plots_pathName;
-
+  string diMuonMass_pathName;
+  string diMuonMass_pathNameOR;
+  string diElecMass_pathName;
 
   //declare all MEs
   MonitorElement * alphaT_;
@@ -191,6 +195,8 @@ class HLTObjectMonitor : public DQMEDAnalyzer {
   MonitorElement * pfHtPt_;
   MonitorElement * bJetPhi_;
   MonitorElement * bJetEta_;
+  MonitorElement * diMuonMass_;
+  MonitorElement * diElecMass_;
 
   MonitorElement * wallTimePerEvent_;
 
@@ -242,6 +248,8 @@ HLTObjectMonitor::HLTObjectMonitor(const edm::ParameterSet& iConfig)
   pfHtPt_TH1 = iConfig.getParameter<edm::ParameterSet>("pfHtPt");
   bJetPhi_TH1 = iConfig.getParameter<edm::ParameterSet>("bJetPhi");
   bJetEta_TH1 = iConfig.getParameter<edm::ParameterSet>("bJetEta");
+  diMuonMass_TH1 = iConfig.getParameter<edm::ParameterSet>("diMuonMass");
+  diElecMass_TH1 = iConfig.getParameter<edm::ParameterSet>("diElecMass");
 
   //set Token(s) 
   //will need to change 'TEST' to 'HLT' or something else before implementation
@@ -409,7 +417,10 @@ HLTObjectMonitor::dqmBeginRun(edm::Run const& iRun, edm::EventSetup const& iSetu
   pfHtPt_pathName = pfHtPt_TH1.getParameter<string>("pathName");
   bJetPlots_pathName = bJetPhi_TH1.getParameter<string>("pathName");
   bJetPlots_pathNameOR = bJetPhi_TH1.getParameter<string>("pathName_OR");
-
+  diMuonMass_pathName = diMuonMass_TH1.getParameter<string>("pathName");
+  diMuonMass_pathNameOR = diMuonMass_TH1.getParameter<string>("pathName_OR");
+  diElecMass_pathName = diElecMass_TH1.getParameter<string>("pathName");
+  
   //link all paths and filters needed
   
   if (lookupIndex.count(photonPlots_pathName) > 0)
@@ -482,8 +493,21 @@ HLTObjectMonitor::dqmBeginRun(edm::Run const& iRun, edm::EventSetup const& iSetu
       quickCollectionPaths.push_back(bJetPlots_pathNameOR);
       lookupFilter[bJetPlots_pathNameOR] = bJetEta_TH1.getParameter<string>("moduleName_OR");
     }
-
-
+  if (lookupIndex.count(diMuonMass_pathName) >0)
+    {
+      quickCollectionPaths.push_back(diMuonMass_pathName);
+      lookupFilter[diMuonMass_pathName] = diMuonMass_TH1.getParameter<string>("moduleName");
+    }
+  if (lookupIndex.count(diMuonMass_pathNameOR) >0)
+    {
+      quickCollectionPaths.push_back(diMuonMass_pathNameOR);
+      lookupFilter[diMuonMass_pathNameOR] = diMuonMass_TH1.getParameter<string>("moduleName_OR");
+    }
+  if (lookupIndex.count(diElecMass_pathName) >0)
+    {
+      quickCollectionPaths.push_back(diElecMass_pathName);
+      lookupFilter[diElecMass_pathName] = diElecMass_TH1.getParameter<string>("moduleName");
+    }
 }
 
 // ------------ method called when ending the processing of a run  ------------
@@ -598,6 +622,20 @@ void HLTObjectMonitor::bookHistograms(DQMStore::IBooker & ibooker, edm::Run cons
       hist_PFMetPt->SetMinimum(0);
       pfMetPt_ = ibooker.book1D("PFMET_pT",hist_PFMetPt);
     }
+  //dimuon mass
+  if (lookupIndex.count(diMuonMass_pathName) >0 || lookupIndex.count(diMuonMass_pathNameOR) >0)
+    {
+      TH1F * hist_diMuonMass = new TH1F("diMuon_Mass","dimuon mass",diMuonMass_TH1.getParameter<int>("NbinsX"),diMuonMass_TH1.getParameter<int>("Xmin"),diMuonMass_TH1.getParameter<int>("Xmax"));
+      hist_diMuonMass->SetMinimum(0);
+      diMuonMass_ = ibooker.book1D("diMuon_Mass",hist_diMuonMass);
+    }
+  //dielectron mass
+  if (lookupIndex.count(diElecMass_pathName) >0)
+    {
+      TH1F * hist_diElecMass = new TH1F("diElec_Mass","dielectron mass",diElecMass_TH1.getParameter<int>("NbinsX"),diElecMass_TH1.getParameter<int>("Xmin"),diElecMass_TH1.getParameter<int>("Xmax"));
+      hist_diElecMass->SetMinimum(0);
+      diElecMass_ = ibooker.book1D("diElec_Mass",hist_diElecMass);
+    }
 
   ////////////////////////////////
   ///
@@ -671,7 +709,6 @@ void HLTObjectMonitor::fillPlots(int evtNum, string pathName, edm::Handle<trigge
   if (debugPrint) std::cout << "Inside fillPlots( " << evtNum << " , " << pathName << " ) " << std::endl;
 
   const TriggerObjectCollection objects = aodTriggerEvent->getObjects();
-  
   edm::InputTag moduleFilter(lookupFilter[pathName],"","TEST");
   unsigned int moduleFilterIndex = aodTriggerEvent->filterIndex(moduleFilter);
   const Keys &keys = aodTriggerEvent->filterKeys( moduleFilterIndex );
@@ -811,7 +848,7 @@ void HLTObjectMonitor::fillPlots(int evtNum, string pathName, edm::Handle<trigge
   	    {
   	      if (key0 != key1 && kCnt1 > kCnt0) // avoid filling hists with same objs && avoid double counting separate objs
   		{
-  		  if (abs(objects[key0].id()) == 13 && abs(objects[key1].id()) == 13 && (objects[key0].id()+objects[key1].id()==0))  // check muon id and dimuon charge
+  		  if (abs(objects[key0].id()) == 13 && (objects[key0].id()+objects[key1].id()==0))  // check muon id and dimuon charge
   		    {
   		      TLorentzVector mu1, mu2, dimu;
   		      mu1.SetPtEtaPhiM(objects[key0].pt(), objects[key0].eta(), objects[key0].phi(), mu_mass);
@@ -824,8 +861,59 @@ void HLTObjectMonitor::fillPlots(int evtNum, string pathName, edm::Handle<trigge
   	    }
   	  kCnt0 +=1;
   	}
-    } //end double object plot
-  
+    } 
+    
+  else if (pathName == diMuonMass_pathName || pathName == diMuonMass_pathNameOR)
+    {
+      const double mu_mass(.105658);
+      unsigned int kCnt0 = 0;  
+      for (const auto & key0: keys)
+        {
+          unsigned int kCnt1 = 0;
+          for (const auto & key1: keys)
+            {
+              if (key0 != key1 && kCnt1 > kCnt0) // avoid filling hists with same objs && avoid double counting separate objs
+                {
+                  if (abs(objects[key0].id()) == 13 && (objects[key0].id()+objects[key1].id()==0))  // check muon id and dimuon charge
+                    {
+                      TLorentzVector mu1, mu2, dimu;
+                      mu1.SetPtEtaPhiM(objects[key0].pt(), objects[key0].eta(), objects[key0].phi(), mu_mass);
+                      mu2.SetPtEtaPhiM(objects[key1].pt(), objects[key1].eta(), objects[key1].phi(), mu_mass);
+                      dimu = mu1+mu2;
+                      diMuonMass_->Fill(dimu.M());
+                    }
+                }
+              kCnt1 +=1;
+            }
+          kCnt0 +=1;
+        }
+    } 
+    
+  else if (pathName == diElecMass_pathName)
+    {
+      unsigned int kCnt0 = 0;  
+      for (const auto & key0: keys)
+        {
+          unsigned int kCnt1 = 0;
+          for (const auto & key1: keys)
+            {
+              if (key0 != key1 && kCnt1 > kCnt0) // avoid filling hists with same objs && avoid double counting separate objs
+                {
+//                   if (abs(objects[key0].id()) == 11 && (objects[key0].id()+objects[key1].id()==0))  // id is not filled for electrons
+//                     {
+                      TLorentzVector el1, el2, diEl;
+                      el1.SetPtEtaPhiM(objects[key0].pt(), objects[key0].eta(), objects[key0].phi(), 0);
+                      el2.SetPtEtaPhiM(objects[key1].pt(), objects[key1].eta(), objects[key1].phi(), 0);
+                      diEl = el1+el2;
+                      diElecMass_->Fill(diEl.M());
+//                     }  
+                }
+              kCnt1 +=1;
+            }
+          kCnt0 +=1;
+        }
+    } 
+    //end double object plot
 }
 
 double HLTObjectMonitor::get_wall_time()
